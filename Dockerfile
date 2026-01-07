@@ -21,4 +21,15 @@ RUN dotnet publish "./AttendanceManagementSystem.csproj" -c $BUILD_CONFIGURATION
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+# Fix permissions for SQLite (ensure app user can write to the directory)
+USER root
+RUN chown -R app:app /app
+
+# Switch back to app user for security
+USER app
+
+# Ensure binding to all interfaces
+ENV ASPNETCORE_URLS=http://0.0.0.0:8080
+
 ENTRYPOINT ["dotnet", "AttendanceManagementSystem.dll"]
