@@ -22,8 +22,9 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# Create non-root user and fix permissions for SQLite
-RUN addgroup -S app && adduser -S app -G app
+# Create non-root user if it doesn't exist (Alpine base image may already have it)
+RUN addgroup -S app 2>/dev/null || true && \
+    adduser -S app -G app 2>/dev/null || true
 RUN chown -R app:app /app
 USER app
 
