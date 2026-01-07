@@ -1,11 +1,11 @@
-# Use the official ASP.NET Core runtime as a parent image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+# Use the official ASP.NET Core runtime as a parent image (Alpine for strict user control)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS base
 WORKDIR /app
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
 
 # Use the SDK image for building the application
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["AttendanceManagementSystem.csproj", "."]
@@ -22,10 +22,10 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# Fix permissions for SQLite (ensure directory is writable)
-# Running as root to avoid any permission issues with SQLite creation
-USER root
-# RUN chown -R app:app /app # Not needed if running as root
+# Create non-root user and fix permissions for SQLite
+RUN addgroup -S app && adduser -S app -G app
+RUN chown -R app:app /app
+USER app
 
 # Ensure binding to all interfaces
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080

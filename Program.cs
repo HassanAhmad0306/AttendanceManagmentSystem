@@ -132,7 +132,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health");
-app.MapGet("/", () => "Attendance Management System is Running!");
+app.MapGet("/", () => "Attendance Management System is running");
 
 // Create database if it doesn't exist - commented out for now
 // Create database and seed data
