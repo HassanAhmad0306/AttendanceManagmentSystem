@@ -22,10 +22,6 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# The app user already exists in the Alpine base image - just set permissions and use it
-RUN chown -R app:app /app
-USER app
-
 # Ensure binding to all interfaces
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 
