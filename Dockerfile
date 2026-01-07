@@ -22,12 +22,10 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# Fix permissions for SQLite (ensure app user can write to the directory)
+# Fix permissions for SQLite (ensure directory is writable)
+# Running as root to avoid any permission issues with SQLite creation
 USER root
-RUN chown -R app:app /app
-
-# Switch back to app user for security
-USER app
+# RUN chown -R app:app /app # Not needed if running as root
 
 # Ensure binding to all interfaces
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080
