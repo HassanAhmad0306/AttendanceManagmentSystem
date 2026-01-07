@@ -18,9 +18,13 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
-// Configure DbContext with SQL Server - Database First Approach
+// Configure DbContext with SQLite
 builder.Services.AddDbContext<AttendanceManagementDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// ... (skip down to seeding block)
+
+// Create database and seed data
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -128,20 +132,27 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Create database if it doesn't exist - commented out for now
-// using (var scope = app.Services.CreateScope())
-// {
-//     var services = scope.ServiceProvider;
-//     try
-//     {
-//         var context = services.GetRequiredService<ApplicationDbContext>();
-//         context.Database.EnsureCreated();
-//         // Or use migrations: context.Database.Migrate();
-//     }
-//     catch (Exception ex)
-//     {
-//         var logger = services.GetRequiredService<ILogger<Program>>();
-//         logger.LogError(ex, "An error occurred creating the database.");
-//     }
-// }
+// Create database and seed data
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<AttendanceManagementDbContext>();
+        // Ensure database is created
+        context.Database.EnsureCreated();
+        
+        // Seed data
+        DbSeeder.Seed(context);
+        
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Database created and seeded successfully.");
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred creating the database.");
+    }
+}
 
 app.Run();

@@ -43,7 +43,7 @@ public partial class AttendanceManagementDbContext : DbContext
         // Connection string is configured in Program.cs from appsettings.json
         if (!optionsBuilder.IsConfigured)
         {
-            optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=AttendanceManagementDB;Trusted_Connection=true;TrustServerCertificate=true");
+            optionsBuilder.UseSqlite("Data Source=app.db");
         }
     }
 
