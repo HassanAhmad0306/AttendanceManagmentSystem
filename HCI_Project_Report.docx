@@ -1,0 +1,64 @@
+# Attendance Management System (HCI Project)
+
+## Introduction
+This project is a simple, user-friendly Attendance Management System designed for educational institutions. It follows Human-Computer Interaction (HCI) principles to ensure accessibility, usability, and a pleasant user experience for Admins, Teachers, and Students.
+
+## Project Goals
+- Make attendance management easy and fast
+- Ensure the system is accessible to everyone
+- Provide clear, attractive dashboards for all users
+- Use simple language and intuitive design
+
+## Key Features
+- **Role-based Dashboards:** Separate views for Admin, Teacher, and Student
+- **Easy Login:** Simple login page with password reset and show/hide options
+- **Attendance Marking:** Teachers can mark attendance with a few clicks
+- **Statistics:** Students see their attendance percentage and details
+- **Admin Controls:** Admin can create users, assign teachers, enroll students, and view reports
+- **Responsive Design:** Works on mobile, tablet, and desktop
+- **Accessibility:** Keyboard navigation, color contrast, and focus management
+
+## How to Use
+1. **Login** with your username and password
+2. **Admin:** Manage users, courses, sections, sessions, assignments, and view reports
+3. **Teacher:** Mark attendance, view students, and attendance records
+4. **Student:** View attendance stats, records, courses, and timetable
+
+## HCI & Accessibility Features
+- **Keyboard Accessible:** All forms, tables, and modals can be used with keyboard only
+- **Clear Feedback:** Success and error messages are shown after every action
+- **Color Coding:** Attendance status and statistics use color badges for quick understanding
+- **Simple Language:** All instructions and labels are easy to read
+- **Responsive Tables:** Tables scroll on small screens, no data is hidden
+- **Focus Trap in Modals:** When a modal is open, focus stays inside until closed
+- **Section Headers:** Clear, bold section headers for easy navigation
+
+## User Guide (Quick Steps)
+- **Admin:**
+  - Create users, courses, sections, sessions
+  - Assign teachers to courses
+  - Enroll students in courses
+  - Reset passwords
+  - View reports
+- **Teacher:**
+  - Mark attendance for assigned courses
+  - View attendance records
+  - See student lists
+- **Student:**
+  - View overall and course-wise attendance
+  - See detailed records and timetable
+
+## Sample Data
+- 1 Admin, 1 Teacher, 2 Students
+- 5 Courses, 3 Sessions, 3 Sections
+- 28 Attendance records for testing
+
+## Screenshots
+(Add screenshots of dashboards and forms here for visual appeal)
+
+## Conclusion
+This Attendance Management System is designed to be easy, accessible, and visually attractive. It meets all HCI requirements and is ready for real-world use. All features are tested and working. For any help, see the user guide or contact support.
+
+---
+**Submitted by:** [Your Name]
+**Date:** January 5, 2026

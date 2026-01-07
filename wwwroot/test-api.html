@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>API Test</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      .theme-toggle {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        background: none;
+        border: none;
+        font-size: 1.7rem;
+        cursor: pointer;
+        color: #764ba2;
+        z-index: 100;
+        transition: color 0.3s;
+      }
+      .theme-toggle:focus {
+        outline: 2px solid #764ba2;
+      }
+      .dark-mode .theme-toggle {
+        color: #ffd200;
+      }
+      body.dark-mode {
+        background: #18191a;
+        color: #f5f6fa;
+      }
+    </style>
+  </head>
+  <body>
+    <button
+      class="theme-toggle"
+      id="themeToggle"
+      title="Toggle light/dark mode"
+    >
+      <i class="fa-regular fa-moon" id="themeIcon"></i>
+    </button>
+    <h1>API Test Page</h1>
+    <button onclick="testAPI()">Test Teachers API</button>
+    <pre id="output"></pre>
+
+    <script>
+      // Theme toggle logic
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      function setTheme(mode) {
+        if (mode === "dark") {
+          document.body.classList.add("dark-mode");
+          themeIcon.classList.remove("fa-moon");
+          themeIcon.classList.add("fa-sun");
+        } else {
+          document.body.classList.remove("dark-mode");
+          themeIcon.classList.remove("fa-sun");
+          themeIcon.classList.add("fa-moon");
+        }
+      }
+      function toggleTheme() {
+        const isDark = document.body.classList.toggle("dark-mode");
+        localStorage.setItem("theme", isDark ? "dark" : "light");
+        setTheme(isDark ? "dark" : "light");
+      }
+      themeToggle.addEventListener("click", toggleTheme);
+      // On load, set theme from localStorage
+      const savedTheme = localStorage.getItem("theme") || "light";
+      setTheme(savedTheme);
+      async function testAPI() {
+        const output = document.getElementById("output");
+        try {
+          // Step 1: Login
+          output.textContent = "Logging in...\n";
+          const loginResponse = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: "admin", password: "admin123" }),
+          });
+
+          output.textContent += `Login response status: ${loginResponse.status} ${loginResponse.statusText}\n`;
+          const loginText = await loginResponse.text();
+          output.textContent += `Login response body: ${loginText}\n`;
+
+          if (!loginResponse.ok) {
+            output.textContent += `ERROR: Login failed\n`;
+            return;
+          }
+
+          const loginData = JSON.parse(loginText);
+          output.textContent += `Login successful! Token: ${loginData.token.substring(
+            0,
+            20
+          )}...\n\n`;
+
+          // Step 2: Get Teachers
+          output.textContent += "Fetching teachers...\n";
+          const teachersResponse = await fetch("/api/admin/teachers", {
+            headers: { Authorization: `Bearer ${loginData.token}` },
+          });
+
+          output.textContent += `Teachers response status: ${teachersResponse.status}\n`;
+          const teachersText = await teachersResponse.text();
+          output.textContent += `Teachers response: ${teachersText}\n\n`;
+
+          const teachers = JSON.parse(teachersText);
+          output.textContent += `Teachers parsed:\n${JSON.stringify(
+            teachers,
+            null,
+            2
+          )}\n\n`;
+
+          // Step 3: Get Students
+          output.textContent += "Fetching students...\n";
+          const studentsResponse = await fetch("/api/admin/students", {
+            headers: { Authorization: `Bearer ${loginData.token}` },
+          });
+
+          output.textContent += `Students response status: ${studentsResponse.status}\n`;
+          const studentsText = await studentsResponse.text();
+          output.textContent += `Students response: ${studentsText}\n\n`;
+
+          const students = JSON.parse(studentsText);
+          output.textContent += `Students parsed:\n${JSON.stringify(
+            students,
+            null,
+            2
+          )}`;
+        } catch (error) {
+          output.textContent += `\nERROR: ${error.message}\n${error.stack}`;
+        }
+      }
+    </script>
+  </body>
+</html>

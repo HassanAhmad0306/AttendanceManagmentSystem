@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Attendance Management System</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      body.dark-mode {
+        background: linear-gradient(
+          135deg,
+          #232526 0%,
+          #414345 100%
+        ) !important;
+        color: #f5f6fa !important;
+      }
+      .dark-mode .main-login-wrapper {
+        background: #232526 !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4) !important;
+      }
+      .dark-mode .login-form-section {
+        background: #242526 !important;
+        color: #f5f6fa !important;
+        box-shadow: 0 8px 32px rgba(35, 37, 38, 0.2) !important;
+      }
+      .dark-mode .login-header h2,
+      .dark-mode .login-header p {
+        color: #f5f6fa !important;
+      }
+      .dark-mode .input-group input {
+        background: #232526 !important;
+        color: #f5f6fa !important;
+        border-color: #444 !important;
+      }
+      .dark-mode .input-group input::placeholder {
+        color: #b0b3b8 !important;
+      }
+      .dark-mode .login-button {
+        background: linear-gradient(
+          135deg,
+          #434343 0%,
+          #262626 100%
+        ) !important;
+        color: #ffd200 !important;
+      }
+      .dark-mode .error-message {
+        background: #3a2323 !important;
+        color: #ffd2d2 !important;
+        border-left: 4px solid #ffd200 !important;
+      }
+      .theme-toggle {
+        position: absolute;
+        top: 30px;
+        right: 40px;
+        background: none;
+        border: none;
+        font-size: 1.7rem;
+        cursor: pointer;
+        color: #764ba2;
+        z-index: 100;
+        transition: color 0.3s;
+      }
+      .theme-toggle:focus {
+        outline: 2px solid #764ba2;
+      }
+      .dark-mode .theme-toggle {
+        color: #ffd200;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+      }
+
+      .main-login-wrapper {
+        display: flex;
+        width: 900px;
+        max-width: 98vw;
+        min-height: 600px;
+        background: #f0f2f8;
+        border-radius: 24px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+        overflow: hidden;
+        animation: slideIn 0.7s cubic-bezier(0.4, 2, 0.6, 1);
+      }
+      @media (max-width: 900px) {
+        .main-login-wrapper {
+          flex-direction: column;
+          width: 98vw;
+          min-height: unset;
+        }
+        .login-visual,
+        .login-form-section {
+          width: 100%;
+          min-width: unset;
+        }
+      }
+      .login-visual {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        flex: 1.2;
+        min-width: 340px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 32px;
+        text-align: center;
+      }
+      .login-visual .logo {
+        font-size: 70px;
+        margin-bottom: 24px;
+        color: #fff;
+        filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.12));
+      }
+      .login-visual h1 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: 18px;
+        letter-spacing: 1px;
+      }
+      .login-visual p {
+        font-size: 1.1rem;
+        color: #e0e0e0;
+        margin-bottom: 32px;
+      }
+      .login-visual .features {
+        text-align: left;
+        margin: 0 auto;
+        max-width: 320px;
+      }
+      .login-visual .features li {
+        margin-bottom: 12px;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .login-visual .features i {
+        color: #ffd200;
+        font-size: 1.1em;
+      }
+      .login-form-section {
+        flex: 1;
+        min-width: 320px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 48px 36px;
+        background: #fff;
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.1);
+        border-radius: 0 24px 24px 0;
+        position: relative;
+        z-index: 2;
+      }
+      .login-form-section .login-header {
+        text-align: left;
+        margin-bottom: 32px;
+      }
+      .login-form-section .login-header h2 {
+        color: #333;
+        font-size: 2rem;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      .login-form-section .login-header p {
+        color: #666;
+        font-size: 1rem;
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-40px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .input-group {
+        position: relative;
+        margin-bottom: 25px;
+      }
+
+      .input-group i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #667eea;
+        font-size: 18px;
+      }
+
+      .input-group input {
+        width: 100%;
+        padding: 15px 15px 15px 50px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 16px;
+        transition: all 0.3s;
+      }
+
+      .input-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+      }
+
+      .password-toggle {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #999;
+        cursor: pointer;
+        font-size: 18px;
+        transition: color 0.3s;
+      }
+
+      .password-toggle:hover {
+        color: #667eea;
+      }
+
+      .remember-me {
+        display: flex;
+        align-items: center;
+        margin-bottom: 25px;
+        font-size: 14px;
+        color: #666;
+      }
+
+      .remember-me input[type="checkbox"] {
+        margin-right: 8px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+
+      .login-button {
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        box-shadow: 8px 0 32px rgba(102, 126, 234, 0.1);
+        border-radius: 24px 0 0 24px;
+        position: relative;
+        z-index: 1;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .login-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .login-button:active {
+        transform: translateY(0);
+      }
+
+      .login-button.loading {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        display: none;
+      }
+
+      .login-button.loading .spinner {
+        display: inline-block;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .error-message {
+        background: #ffe0e0;
+        color: #a33;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+        border-left: 4px solid #a33;
+        animation: shake 0.5s;
+      }
+
+      .error-message.show {
+        display: block;
+      }
+
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-10px);
+        }
+        75% {
+          transform: translateX(10px);
+        }
+      }
+
+      .forgot-password {
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .forgot-password a {
+        color: #667eea;
+        text-decoration: none;
+        font-size: 14px;
+        transition: color 0.3s;
+      }
+
+      .forgot-password a:hover {
+        color: #764ba2;
+        text-decoration: underline;
+      }
+
+      @media (max-width: 480px) {
+        .login-container {
+          padding: 30px 20px;
+        }
+
+        .login-header h1 {
+          font-size: 24px;
+        }
+
+        .login-header i {
+          font-size: 50px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      // Set theme as early as possible to avoid FOUC
+      (function () {
+        var savedTheme = localStorage.getItem("theme") || "light";
+        if (savedTheme === "dark") {
+          document.body.classList.add("dark-mode");
+        }
+      })();
+    </script>
+    <button
+      class="theme-toggle"
+      id="themeToggle"
+      title="Toggle light/dark mode"
+    >
+      <i class="fa-regular fa-moon" id="themeIcon"></i>
+    </button>
+    <div class="main-login-wrapper">
+      <div class="login-visual">
+        <div class="logo"><i class="fas fa-graduation-cap"></i></div>
+        <h1>Attendance Management System</h1>
+        <p>
+          Modern, Secure &amp; Efficient Attendance Tracking for Schools and
+          Colleges.
+        </p>
+        <ul class="features">
+          <li><i class="fas fa-user-shield"></i> Secure Login for All Roles</li>
+          <li><i class="fas fa-calendar-check"></i> Real-time Attendance</li>
+          <li><i class="fas fa-chart-line"></i> Analytics &amp; Reports</li>
+          <li><i class="fas fa-mobile-alt"></i> Mobile Friendly</li>
+        </ul>
+      </div>
+      <div class="login-form-section">
+        <div class="login-header">
+          <h2>Sign In</h2>
+          <p>Enter your credentials to access your dashboard.</p>
+        </div>
+        <div id="error" class="error-message"></div>
+        <form id="loginForm" onsubmit="login(event)">
+          <div class="input-group">
+            <i class="fas fa-user"></i>
+            <input
+              type="text"
+              id="username"
+              placeholder="Username"
+              required
+              autocomplete="username"
+            />
+          </div>
+          <div class="input-group">
+            <i class="fas fa-lock"></i>
+            <input
+              type="password"
+              id="password"
+              placeholder="Password"
+              required
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              onclick="togglePassword()"
+            >
+              <i class="fas fa-eye" id="eyeIcon"></i>
+            </button>
+          </div>
+          <div class="remember-me">
+            <input type="checkbox" id="rememberMe" />
+            <label for="rememberMe">Remember me</label>
+          </div>
+          <button type="submit" id="loginBtn" class="login-button">
+            <span id="btnText">Sign In</span>
+            <div class="spinner"></div>
+          </button>
+        </form>
+        <div class="forgot-password">
+          <a
+            href="#"
+            onclick="alert('Contact your administrator to reset password'); return false;"
+          >
+            Forgot password?
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Unified theme toggle logic
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      function setTheme(mode) {
+        if (mode === "dark") {
+          document.body.classList.add("dark-mode");
+          if (themeIcon) {
+            themeIcon.classList.remove("fa-moon");
+            themeIcon.classList.add("fa-sun");
+            themeIcon.style.color = "#ffd200";
+            themeIcon.style.opacity = "1";
+          }
+          localStorage.setItem("theme", "dark");
+        } else {
+          document.body.classList.remove("dark-mode");
+          if (themeIcon) {
+            themeIcon.classList.remove("fa-sun");
+            themeIcon.classList.add("fa-moon");
+            themeIcon.style.color = "#764ba2";
+            themeIcon.style.opacity = "0.85";
+          }
+          localStorage.setItem("theme", "light");
+        }
+      }
+      function toggleTheme() {
+        const currentTheme = document.body.classList.contains("dark-mode")
+          ? "dark"
+          : "light";
+        setTheme(currentTheme === "dark" ? "light" : "dark");
+      }
+      if (themeToggle && themeIcon) {
+        themeToggle.addEventListener("click", toggleTheme);
+        const savedTheme = localStorage.getItem("theme") || "light";
+        setTheme(savedTheme);
+      } else {
+        // fallback for pages without toggle button
+        const savedTheme = localStorage.getItem("theme") || "light";
+        setTheme(savedTheme);
+      }
+      const API_URL = "http://localhost:5000/api";
+
+      // Check if user is already logged in
+      if (localStorage.getItem("token")) {
+        const role = localStorage.getItem("role");
+        if (role === "Admin") {
+          window.location.href = "admin-dashboard.html";
+        } else if (role === "Teacher") {
+          window.location.href = "teacher-dashboard.html";
+        } else if (role === "Student") {
+          window.location.href = "student-dashboard.html";
+        }
+      }
+
+      // Load remembered username
+      if (localStorage.getItem("rememberedUsername")) {
+        document.getElementById("username").value =
+          localStorage.getItem("rememberedUsername");
+        document.getElementById("rememberMe").checked = true;
+      }
+
+      function togglePassword() {
+        const passwordInput = document.getElementById("password");
+        const eyeIcon = document.getElementById("eyeIcon");
+
+        if (passwordInput.type === "password") {
+          passwordInput.type = "text";
+          eyeIcon.classList.remove("fa-eye");
+          eyeIcon.classList.add("fa-eye-slash");
+        } else {
+          passwordInput.type = "password";
+          eyeIcon.classList.remove("fa-eye-slash");
+          eyeIcon.classList.add("fa-eye");
+        }
+      }
+
+      function showError(message) {
+        const errorDiv = document.getElementById("error");
+        errorDiv.textContent = message;
+        errorDiv.classList.add("show");
+        setTimeout(() => {
+          errorDiv.classList.remove("show");
+        }, 5000);
+      }
+
+      // Validation for password/email will be handled during user/admin creation, not login
+
+      async function login(event) {
+        event.preventDefault();
+
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        const rememberMe = document.getElementById("rememberMe").checked;
+        const loginBtn = document.getElementById("loginBtn");
+        const btnText = document.getElementById("btnText");
+
+        // Show loading state
+        loginBtn.classList.add("loading");
+        loginBtn.disabled = true;
+        btnText.textContent = "Signing in...";
+
+        try {
+          const response = await fetch(`${API_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+
+          if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error || "Login failed");
+          }
+
+          const data = await response.json();
+
+          // Save to localStorage
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("role", data.role);
+          localStorage.setItem("userId", data.userId);
+          localStorage.setItem("username", data.username);
+
+          // Remember username if checkbox is checked
+          if (rememberMe) {
+            localStorage.setItem("rememberedUsername", username);
+          } else {
+            localStorage.removeItem("rememberedUsername");
+          }
+
+          // Redirect based on role
+          if (data.role === "Admin") {
+            window.location.href = "admin-dashboard.html";
+          } else if (data.role === "Teacher") {
+            window.location.href = "teacher-dashboard.html";
+          } else if (data.role === "Student") {
+            window.location.href = "student-dashboard.html";
+          }
+        } catch (error) {
+          showError(error.message || "Invalid username or password");
+          loginBtn.classList.remove("loading");
+          loginBtn.disabled = false;
+          btnText.textContent = "Sign In";
+        }
+      }
+    </script>
+  </body>
+</html>
