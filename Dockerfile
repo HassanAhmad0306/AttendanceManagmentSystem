@@ -22,9 +22,7 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# Create non-root user if it doesn't exist (Alpine base image may already have it)
-RUN addgroup -S app 2>/dev/null || true && \
-    adduser -S app -G app 2>/dev/null || true
+# The app user already exists in the Alpine base image - just set permissions and use it
 RUN chown -R app:app /app
 USER app
 
