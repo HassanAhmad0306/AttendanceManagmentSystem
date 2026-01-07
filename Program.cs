@@ -8,6 +8,10 @@ using AttendanceManagementSystem.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Explicit logging configuration
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
 // Add services to the container.
 builder.Services.AddHealthChecks();
 builder.Services.AddControllers()
@@ -158,4 +162,13 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-app.Run();
+try 
+{
+    app.Run();
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogCritical(ex, "Host terminated unexpectedly");
+    throw;
+}
