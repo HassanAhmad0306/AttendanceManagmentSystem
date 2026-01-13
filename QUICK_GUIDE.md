@@ -6,7 +6,7 @@
 
 1. **Login as Admin**
    - Username: `admin`
-   - Password: `admin123`
+   - Password: `Admin@123`
    - Click "Sign In"
 
 2. **Click "🔗 Assignments" in the Left Menu**

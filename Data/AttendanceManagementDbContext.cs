@@ -41,10 +41,7 @@ public partial class AttendanceManagementDbContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         // Connection string is configured in Program.cs from appsettings.json
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseSqlite("Data Source=app.db");
-        }
+        // No fallback connection string - must be provided via dependency injection
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -60,7 +57,7 @@ public partial class AttendanceManagementDbContext : DbContext
         {
             entity.HasKey(e => e.AttendanceId).HasName("PK__Attendan__8B69261C656BB0F7");
 
-            entity.Property(e => e.MarkedAt).HasDefaultValueSql("(datetime('now'))");
+            entity.Property(e => e.MarkedAt).HasDefaultValueSql("(getdate())");
 
             entity.HasOne(d => d.Course).WithMany(p => p.Attendances)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -84,7 +81,7 @@ public partial class AttendanceManagementDbContext : DbContext
         {
             entity.HasKey(e => e.EnrollmentId).HasName("PK__CourseEn__7F68771B8693726F");
 
-            entity.Property(e => e.EnrollmentDate).HasDefaultValueSql("(datetime('now'))");
+            entity.Property(e => e.EnrollmentDate).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.Status).HasDefaultValue("Active");
 
             entity.HasOne(d => d.Course).WithMany(p => p.CourseEnrollments).HasConstraintName("FK_CourseEnrollments_Courses");
@@ -98,7 +95,7 @@ public partial class AttendanceManagementDbContext : DbContext
         {
             entity.HasKey(e => e.CourseTeacherId).HasName("PK__CourseTe__CD7EDFDC1DAF0F4B");
 
-            entity.Property(e => e.AssignedDate).HasDefaultValueSql("(datetime('now'))");
+            entity.Property(e => e.AssignedDate).HasDefaultValueSql("(getdate())");
 
             entity.HasOne(d => d.Course).WithMany(p => p.CourseTeachers).HasConstraintName("FK_CourseTeachers_Courses");
 
@@ -164,7 +161,7 @@ public partial class AttendanceManagementDbContext : DbContext
         {
             entity.HasKey(e => e.UserId).HasName("PK__Users__1788CC4C7D413BCD");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(datetime('now'))");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.IsFirstLogin).HasDefaultValue(true);
         });

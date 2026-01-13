@@ -42,7 +42,7 @@
 
 ### Admin Account:
 - **Username**: `admin`
-- **Password**: `admin123`
+- **Password**: `Admin@123`
 - **Can**: Create users, courses, sections, reset passwords, assign teachers, enroll students
 
 ### Teacher Account:

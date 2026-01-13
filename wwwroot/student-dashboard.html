@@ -1,304 +1,287 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Student Dashboard - AMS</title>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
-    <link rel="stylesheet" href="css/dashboard.css" />
-    <style>
-      .theme-toggle {
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        cursor: pointer;
-        color: #764ba2;
-        margin-left: 18px;
-        transition: color 0.3s;
-      }
-      .theme-toggle:focus {
-        outline: 2px solid #764ba2;
-      }
-      .dark-mode .theme-toggle {
-        color: #ffd200;
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Loading Spinner -->
-    <div id="spinnerOverlay" class="spinner-overlay">
-      <div class="spinner"></div>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Dashboard - AMS</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <style>
+    .theme-toggle {
+      background: rgba(0, 0, 0, 0.05);
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #1a1a2e;
+      padding: 8px;
+      transition: all 0.3s;
+      border-radius: 50%;
+      opacity: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .theme-toggle:hover {
+      background: rgba(0, 0, 0, 0.1);
+      transform: scale(1.1);
+    }
+
+    .theme-toggle:focus {
+      outline: 2px solid #764ba2;
+    }
+
+    .dark-mode .theme-toggle {
+      color: #ffd200;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .dark-mode .theme-toggle:hover {
+      background: rgba(255, 210, 0, 0.2);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Loading Spinner -->
+  <div id="spinnerOverlay" class="spinner-overlay">
+    <div class="spinner"></div>
+  </div>
+
+  <nav class="navbar">
+    <div style="display: flex; align-items: center; gap: 15px">
+      <div class="hamburger" onclick="toggleSidebar()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div class="nav-brand">🎓 AMS - Student</div>
     </div>
+    <div class="nav-user">
+      <span id="userName"></span>
+      <button onclick="showChangePasswordModal()" class="btn-settings" title="Change Password">
+        🔒
+      </button>
+      <button onclick="logout()" class="btn-logout">Logout</button>
+      <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode">
+        <i class="fa-regular fa-moon" id="themeIcon"></i>
+      </button>
+    </div>
+  </nav>
 
-    <nav class="navbar">
-      <div style="display: flex; align-items: center; gap: 15px">
-        <div class="hamburger" onclick="toggleSidebar()">
-          <span></span>
-          <span></span>
-          <span></span>
+  <!-- Change Password Modal -->
+  <div id="changePasswordModal" class="modal" style="display: none">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔐 Change Password</h3>
+        <button class="modal-close" onclick="closeChangePasswordModal()">
+          &times;
+        </button>
+      </div>
+      <form id="changePasswordForm" onsubmit="handleChangePassword(event)">
+        <div class="form-group">
+          <label>Current Password *</label>
+          <input type="password" id="currentPassword" required placeholder="Enter current password" />
         </div>
-        <div class="nav-brand">🎓 AMS - Student</div>
-      </div>
-      <div class="nav-user">
-        <span id="userName"></span>
-        <button
-          onclick="showChangePasswordModal()"
-          class="btn-settings"
-          title="Change Password"
-        >
-          🔒
-        </button>
-        <button onclick="logout()" class="btn-logout">Logout</button>
-        <button
-          class="theme-toggle"
-          id="themeToggle"
-          title="Toggle light/dark mode"
-        >
-          <i class="fa-regular fa-moon" id="themeIcon"></i>
-        </button>
-      </div>
-    </nav>
-
-    <!-- Change Password Modal -->
-    <div id="changePasswordModal" class="modal" style="display: none">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>🔐 Change Password</h3>
-          <button class="modal-close" onclick="closeChangePasswordModal()">
-            &times;
+        <div class="form-group">
+          <label>New Password *</label>
+          <input type="password" id="newPassword" required minlength="6"
+            placeholder="Enter new password (min 6 chars)" />
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password *</label>
+          <input type="password" id="confirmPassword" required placeholder="Confirm new password" />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="closeChangePasswordModal()">
+            Cancel
           </button>
+          <button type="submit" class="btn-primary">💾 Save Password</button>
         </div>
-        <form id="changePasswordForm" onsubmit="handleChangePassword(event)">
-          <div class="form-group">
-            <label>Current Password *</label>
-            <input
-              type="password"
-              id="currentPassword"
-              required
-              placeholder="Enter current password"
-            />
-          </div>
-          <div class="form-group">
-            <label>New Password *</label>
-            <input
-              type="password"
-              id="newPassword"
-              required
-              minlength="6"
-              placeholder="Enter new password (min 6 chars)"
-            />
-          </div>
-          <div class="form-group">
-            <label>Confirm New Password *</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              required
-              placeholder="Confirm new password"
-            />
-          </div>
-          <div class="form-actions">
-            <button
-              type="button"
-              class="btn-secondary"
-              onclick="closeChangePasswordModal()"
-            >
-              Cancel
-            </button>
-            <button type="submit" class="btn-primary">💾 Save Password</button>
-          </div>
-        </form>
-      </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="dashboard-container">
+    <div class="sidebar">
+      <ul class="menu">
+        <li class="active" onclick="showSection('overview')">📊 Overview</li>
+        <li onclick="showSection('my-attendance')">📋 My Attendance</li>
+        <li onclick="showSection('my-courses')">📚 My Courses</li>
+        <li onclick="showSection('enroll-courses')">➕ Enroll in Courses</li>
+        <li onclick="showSection('timetable')">🕐 My Timetable</li>
+      </ul>
     </div>
 
-    <div class="dashboard-container">
-      <div class="sidebar">
-        <ul class="menu">
-          <li class="active" onclick="showSection('overview')">📊 Overview</li>
-          <li onclick="showSection('my-attendance')">📋 My Attendance</li>
-          <li onclick="showSection('my-courses')">📚 My Courses</li>
-          <li onclick="showSection('enroll-courses')">➕ Enroll in Courses</li>
-          <li onclick="showSection('timetable')">🕐 My Timetable</li>
-        </ul>
+    <div class="main-content">
+      <!-- Overview Section -->
+      <div id="overview" class="content-section active">
+        <div class="section-header">
+          <h2>📊 Attendance Overview</h2>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-info">
+              <h3 id="overallPercentage">0%</h3>
+              <p>Overall Attendance</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">✓</div>
+            <div class="stat-info">
+              <h3 id="presentCount">0</h3>
+              <p>Total Present</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">✗</div>
+            <div class="stat-info">
+              <h3 id="absentCount">0</h3>
+              <p>Total Absent</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">⏰</div>
+            <div class="stat-info">
+              <h3 id="lateCount">0</h3>
+              <p>Total Late</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Course-wise Attendance</h3>
+        <div class="cards-grid" id="courseAttendanceGrid"></div>
       </div>
 
-      <div class="main-content">
-        <!-- Overview Section -->
-        <div id="overview" class="content-section active">
-          <div class="section-header">
-            <h2>📊 Attendance Overview</h2>
-          </div>
-
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-icon">📊</div>
-              <div class="stat-info">
-                <h3 id="overallPercentage">0%</h3>
-                <p>Overall Attendance</p>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon green">✓</div>
-              <div class="stat-info">
-                <h3 id="presentCount">0</h3>
-                <p>Total Present</p>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon red">✗</div>
-              <div class="stat-info">
-                <h3 id="absentCount">0</h3>
-                <p>Total Absent</p>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon orange">⏰</div>
-              <div class="stat-info">
-                <h3 id="lateCount">0</h3>
-                <p>Total Late</p>
-              </div>
-            </div>
-          </div>
-
-          <h3>Course-wise Attendance</h3>
-          <div class="cards-grid" id="courseAttendanceGrid"></div>
+      <!-- My Attendance Section -->
+      <div id="my-attendance" class="content-section">
+        <div class="section-header">
+          <h2>📋 My Attendance Records</h2>
         </div>
 
-        <!-- My Attendance Section -->
-        <div id="my-attendance" class="content-section">
-          <div class="section-header">
-            <h2>📋 My Attendance Records</h2>
-          </div>
-
-          <div class="form-card">
-            <div class="form-row">
-              <div class="form-group">
-                <label>📚 Filter by Course (Optional)</label>
-                >
-                <select id="filterCourse" onchange="loadAttendanceRecords()">
-                  <option value="">All Courses</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label><i class="fas fa-calendar"></i> From Date</label>
-                <input
-                  type="date"
-                  id="fromDate"
-                  onchange="loadAttendanceRecords()"
-                />
-              </div>
-              <div class="form-group">
-                <label><i class="fas fa-calendar"></i> To Date</label>
-                <input
-                  type="date"
-                  id="toDate"
-                  onchange="loadAttendanceRecords()"
-                />
-              </div>
+        <div class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>📚 Filter by Course (Optional)</label>
+              >
+              <select id="filterCourse" onchange="loadAttendanceRecords()">
+                <option value="">All Courses</option>
+              </select>
             </div>
-          </div>
-
-          <div class="table-container">
-            <div class="search-container">
-              <input
-                type="text"
-                id="searchMyAttendance"
-                class="search-input"
-                placeholder="🔍 Search by course or status..."
-                onkeyup="filterMyAttendanceTable()"
-              />
+            <div class="form-group">
+              <label><i class="fas fa-calendar"></i> From Date</label>
+              <input type="date" id="fromDate" onchange="loadAttendanceRecords()" />
             </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Course</th>
-                  <th>Status</th>
-                  <th>Marked At</th>
-                  <th>Remarks</th>
-                </tr>
-              </thead>
-              <tbody id="attendanceRecordsTable"></tbody>
-            </table>
+            <div class="form-group">
+              <label><i class="fas fa-calendar"></i> To Date</label>
+              <input type="date" id="toDate" onchange="loadAttendanceRecords()" />
+            </div>
           </div>
         </div>
 
-        <!-- My Courses Section -->
-        <div id="my-courses" class="content-section">
-          <div class="section-header">
-            <h2>📚 My Enrolled Courses</h2>
+        <div class="table-container">
+          <div class="search-container">
+            <input type="text" id="searchMyAttendance" class="search-input"
+              placeholder="🔍 Search by course or status..." onkeyup="filterMyAttendanceTable()" />
           </div>
-          <div class="cards-grid" id="myCoursesGrid"></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Course</th>
+                <th>Status</th>
+                <th>Marked At</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceRecordsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- My Courses Section -->
+      <div id="my-courses" class="content-section">
+        <div class="section-header">
+          <h2>📚 My Enrolled Courses</h2>
+        </div>
+        <div class="cards-grid" id="myCoursesGrid"></div>
+      </div>
+
+      <!-- Enroll in Courses Section -->
+      <div id="enroll-courses" class="content-section">
+        <div class="section-header">
+          <h2>➕ Enroll in Courses</h2>
         </div>
 
-        <!-- Enroll in Courses Section -->
-        <div id="enroll-courses" class="content-section">
-          <div class="section-header">
-            <h2>➕ Enroll in Courses</h2>
-          </div>
+        <div class="form-card">
+          <h3>Available Courses</h3>
+          <p style="color: #666; margin-bottom: 20px">
+            Select courses to enroll in for the current session.
+          </p>
+          <div id="availableCoursesContainer"></div>
+        </div>
+      </div>
 
-          <div class="form-card">
-            <h3>Available Courses</h3>
-            <p style="color: #666; margin-bottom: 20px">
-              Select courses to enroll in for the current session.
-            </p>
-            <div id="availableCoursesContainer"></div>
-          </div>
+      <!-- Timetable Section -->
+      <div id="timetable" class="content-section">
+        <div class="section-header">
+          <h2>🕐 My Timetable</h2>
         </div>
 
-        <!-- Timetable Section -->
-        <div id="timetable" class="content-section">
-          <div class="section-header">
-            <h2>🕐 My Timetable</h2>
-          </div>
-
-          <div class="table-card">
-            <table>
-              <thead>
-                <tr>
-                  <th>Day</th>
-                  <th>Course</th>
-                  <th>Teacher</th>
-                  <th>Start Time</th>
-                  <th>End Time</th>
-                  <th>Room</th>
-                </tr>
-              </thead>
-              <tbody id="timetableBody"></tbody>
-            </table>
-          </div>
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Day</th>
+                <th>Course</th>
+                <th>Teacher</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Room</th>
+              </tr>
+            </thead>
+            <tbody id="timetableBody"></tbody>
+          </table>
         </div>
       </div>
     </div>
+  </div>
 
-    <script src="js/student-dashboard.js"></script>
-    <script>
-      // Theme toggle logic
-      const themeToggle = document.getElementById("themeToggle");
-      const themeIcon = document.getElementById("themeIcon");
-      function setTheme(mode) {
-        if (mode === "dark") {
-          document.body.classList.add("dark-mode");
+
+  <script src="js/cookie-utils.js"></script>
+  <script src="js/student-dashboard.js"></script>
+  <script>
+    const themeToggle = document.getElementById("themeToggle");
+    const themeIcon = document.getElementById("themeIcon");
+    function setTheme(mode) {
+      if (mode === "dark") {
+        document.body.classList.add("dark-mode");
+        if (themeIcon) {
           themeIcon.classList.remove("fa-moon");
           themeIcon.classList.add("fa-sun");
-        } else {
-          document.body.classList.remove("dark-mode");
+        }
+      } else {
+        document.body.classList.remove("dark-mode");
+        if (themeIcon) {
           themeIcon.classList.remove("fa-sun");
           themeIcon.classList.add("fa-moon");
         }
       }
-      function toggleTheme() {
-        const isDark = document.body.classList.toggle("dark-mode");
-        localStorage.setItem("theme", isDark ? "dark" : "light");
-        setTheme(isDark ? "dark" : "light");
-      }
+    }
+    function toggleTheme() {
+      const isDark = document.body.classList.toggle("dark-mode");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+      setTheme(isDark ? "dark" : "light");
+    }
+    if (themeToggle) {
       themeToggle.addEventListener("click", toggleTheme);
-      // On load, set theme from localStorage
-      const savedTheme = localStorage.getItem("theme") || "light";
-      setTheme(savedTheme);
-    </script>
-  </body>
+    }
+    const savedTheme = localStorage.getItem("theme") || "light";
+    setTheme(savedTheme);
+  </script>
+</body>
+
 </html>

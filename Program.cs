@@ -8,12 +8,7 @@ using AttendanceManagementSystem.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Explicit logging configuration
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-
 // Add services to the container.
-builder.Services.AddHealthChecks();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -23,13 +18,9 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
-// Configure DbContext with SQLite
+// Configure DbContext with SQL Server - Database First Approach
 builder.Services.AddDbContext<AttendanceManagementDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// ... (skip down to seeding block)
-
-// Create database and seed data
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -53,6 +44,19 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!)),
         ClockSkew = TimeSpan.Zero
     };
+    
+    // Read JWT from Cookie
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            if (context.Request.Cookies.ContainsKey("access_token"))
+            {
+                context.Token = context.Request.Cookies["access_token"];
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddAuthorization();
@@ -66,9 +70,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll",
         builder =>
         {
-            builder.AllowAnyOrigin()
+            builder.SetIsOriginAllowed(origin => true) // Allow any origin
                    .AllowAnyMethod()
-                   .AllowAnyHeader();
+                   .AllowAnyHeader()
+                   .AllowCredentials(); // Allow Cookies
         });
 });
 
@@ -135,40 +140,24 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHealthChecks("/health");
-app.MapGet("/", () => "Attendance Management System is running");
 
-// Create database if it doesn't exist - commented out for now
-// Create database and seed data
+// Create database and seed initial data
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<AttendanceManagementDbContext>();
-        // Ensure database is created
-        context.Database.EnsureCreated();
-        
-        // Seed data
-        DbSeeder.Seed(context);
-        
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("Database created and seeded successfully.");
+        var seeder = new AttendanceManagementSystem.Services.DbSeeder(context);
+        await seeder.SeedAsync();
+        Console.WriteLine("✓ Database initialization completed");
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred creating the database.");
+        logger.LogError(ex, "An error occurred while initializing the database.");
+        Console.WriteLine($"✗ Database initialization failed: {ex.Message}");
     }
 }
 
-try 
-{
-    app.Run();
-}
-catch (Exception ex)
-{
-    var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogCritical(ex, "Host terminated unexpectedly");
-    throw;
-}
+app.Run();

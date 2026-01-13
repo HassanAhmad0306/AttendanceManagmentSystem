@@ -42,19 +42,6 @@
 
 /* Dark mode variables */
 .dark-mode {
-  }
-
-  .dark-mode .form-group input,
-  .dark-mode .form-group select,
-  .dark-mode .form-group textarea {
-    color: #f5f6fa;
-    background: #232526;
-    border-color: #444;
-  }
-  .dark-mode .form-group input::placeholder,
-  .dark-mode .form-group textarea::placeholder {
-    color: #b0b3b8;
-  }
   --primary-gradient: linear-gradient(135deg, #232526 0%, #414345 100%);
   --secondary-gradient: linear-gradient(135deg, #434343 0%, #262626 100%);
   --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
@@ -79,15 +66,57 @@
   --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
   --shadow-glow: 0 0 40px rgba(35, 37, 38, 0.3);
+}
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-full: 50px;
+.dark-mode .form-group input,
+.dark-mode .form-group select,
+.dark-mode .form-group textarea,
+.dark-mode .input-group input,
+.dark-mode input[type="text"],
+.dark-mode input[type="password"],
+.dark-mode input[type="number"],
+.dark-mode input[type="date"],
+.dark-mode select,
+.dark-mode textarea {
+  color: #f5f6fa !important;
+  background: #232526 !important;
+  border-color: #444 !important;
+}
 
-  --transition-fast: 0.2s ease;
-  --transition-normal: 0.3s ease;
-  --transition-slow: 0.5s ease;
+.dark-mode .form-group input::placeholder,
+.dark-mode .form-group textarea::placeholder,
+.dark-mode input::placeholder {
+  color: #b0b3b8 !important;
+}
+
+.dark-mode .sidebar {
+  background: #242526;
+}
+
+.dark-mode .menu li:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode .modal-content {
+  background: #242526;
+  color: #f5f6fa;
+}
+
+.dark-mode .search-input {
+  background: #232526 !important;
+  color: #f5f6fa !important;
+  border-color: #444 !important;
+}
+
+.dark-mode .navbar {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Light mode specific input text color to ensure it's black */
+body:not(.dark-mode) input,
+body:not(.dark-mode) select,
+body:not(.dark-mode) textarea {
+  color: #1a1a2e !important;
 }
 
 /* Reset & Base */
@@ -161,6 +190,7 @@ body {
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -184,10 +214,12 @@ body {
 }
 
 @keyframes float {
+
   0%,
   100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -309,6 +341,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -330,6 +363,7 @@ body {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -489,6 +523,7 @@ body {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -551,12 +586,10 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent);
   transition: var(--transition-slow);
 }
 
@@ -821,6 +854,7 @@ body {
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -842,13 +876,13 @@ body {
 }
 
 .form-row {
-  display: grid ;
+  display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 30px;
   margin-bottom: 15px;
 }
 
-.form-group{
+.form-group {
   margin-bottom: 20px;
 }
 
@@ -919,9 +953,7 @@ body {
   border-radius: var(--radius-full);
   font-size: 15px;
   transition: var(--transition-normal);
-  background: var(--bg-primary)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E")
-    no-repeat 15px center;
+  background: var(--bg-primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E") no-repeat 15px center;
 }
 
 .search-bar input[type="text"]:focus {
@@ -962,7 +994,8 @@ body {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  overflow-x: auto; /* Horizontal scroll for tables */
+  overflow-x: auto;
+  /* Horizontal scroll for tables */
   overflow-y: visible;
   border: 1px solid var(--border-color);
   width: 100%;
@@ -973,12 +1006,14 @@ body {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   padding: 25px;
-  overflow-x: auto; /* Horizontal scroll for tables */
+  overflow-x: auto;
+  /* Horizontal scroll for tables */
 }
 
 table {
   width: 100%;
-  min-width: 700px; /* Force scrollbar on small screens */
+  min-width: 700px;
+  /* Force scrollbar on small screens */
   border-collapse: separate;
   border-spacing: 0;
   table-layout: auto;
@@ -1279,6 +1314,7 @@ tbody tr:last-child td:last-child {
     opacity: 0;
     transform: translateX(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -1519,11 +1555,9 @@ input:focus {
   right: -50%;
   width: 100%;
   height: 200%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.1) 0%,
-    transparent 60%
-  );
+  background: radial-gradient(circle,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 60%);
 }
 
 .course-card-header .course-icon {
@@ -1532,10 +1566,12 @@ input:focus {
 }
 
 @keyframes pulse {
+
   0%,
   100% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.1);
   }
@@ -1692,7 +1728,8 @@ input:focus {
   }
 
   .nav-user span {
-    display: none; /* Hide username on tablet */
+    display: none;
+    /* Hide username on tablet */
   }
 
   .btn-logout {
@@ -1813,7 +1850,8 @@ input:focus {
   }
 
   .nav-user span {
-    display: none; /* Hide username on very small screens */
+    display: none;
+    /* Hide username on very small screens */
   }
 
   .btn-logout {
@@ -1865,7 +1903,8 @@ input:focus {
   }
 
   table {
-    min-width: 600px; /* Force horizontal scroll */
+    min-width: 600px;
+    /* Force horizontal scroll */
   }
 
   th,
@@ -1885,6 +1924,7 @@ input:focus {
    PRINT STYLES
    ======================================== */
 @media print {
+
   .sidebar,
   .navbar,
   .hamburger,
@@ -1993,6 +2033,7 @@ input:focus {
     opacity: 0;
     transform: translateX(100%);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -2048,6 +2089,7 @@ input:focus {
     opacity: 0;
     transform: scale(0.8);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -2174,9 +2216,11 @@ input:focus {
   0% {
     transform: scale(0);
   }
+
   50% {
     transform: scale(1.2);
   }
+
   100% {
     transform: scale(1);
   }
@@ -2273,6 +2317,7 @@ a:focus-visible {
 
 /* Reduced Motion Preference */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

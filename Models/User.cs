@@ -26,6 +26,7 @@ public partial class User
     public string FullName { get; set; } = null!;
 
     [StringLength(150)]
+    [EmailAddress]
     public string Email { get; set; } = null!;
 
     public bool IsFirstLogin { get; set; }

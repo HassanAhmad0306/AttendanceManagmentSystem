@@ -40,7 +40,7 @@ namespace AttendanceManagementSystem.Services
                 issuer: jwtSettings["Issuer"],
                 audience: jwtSettings["Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(24),
+                expires: DateTime.UtcNow.AddMinutes(30),
                 signingCredentials: credentials
             );
 

@@ -1,55 +1,41 @@
 const API_URL = 'http://localhost:5000/api';
-let token = localStorage.getItem('token');
-let currentUserId = localStorage.getItem('userId');
 
-// Check authentication
-if (!token || localStorage.getItem('role') !== 'Admin') {
-    window.location.href = 'index.html';
-}
+let token = null;
+let currentUserId = null;
+let currentUserRole = null;
+
+// Check if user is logged in and has admin access
+async function validateSession() {
+    try {
+        const response = await fetch(`${API_URL}/auth/me`, {
+            headers: {},
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            throw new Error('Session invalid');
+        }
+        const user = await response.json();
+        if (user.role !== 'Admin') {
+            window.location.href = 'index.html';
+            return;
+        }
+        currentUserId = user.userId;
+        currentUserRole = user.role;
+        document.getElementById('userName').textContent = user.fullName || user.username;
 
 
-// Set theme on load (persist dark/light mode)
-// Theme toggle logic (centralized)
-// Fix: Use correct IDs for theme toggle button and icon
-const themeToggle = document.getElementById('themeToggle') || document.getElementById('themeIcon');
-const themeIcon = document.getElementById('themeIcon');
-
-function setTheme(mode) {
-    if (mode === 'dark') {
-        document.body.classList.add('dark-mode');
-        themeIcon.classList.remove('fa-moon');
-        themeIcon.classList.add('fa-sun');
-        themeIcon.style.color = '#ffd200';
-        themeIcon.style.opacity = '1';
-        localStorage.setItem('theme', 'dark');
-    } else {
-        document.body.classList.remove('dark-mode');
-        themeIcon.classList.remove('fa-sun');
-        themeIcon.classList.add('fa-moon');
-        themeIcon.style.color = '#764ba2';
-        themeIcon.style.opacity = '0.85';
-        localStorage.setItem('theme', 'light');
+    } catch (e) {
+        console.error('Session validation failed:', e);
+        await clearAuthData();
+        window.location.href = 'index.html?reason=session_expired';
     }
 }
+validateSession();
 
-function toggleTheme() {
-    const currentTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-    setTheme(currentTheme === 'dark' ? 'light' : 'dark');
-}
+// Username set in validateSession
 
-// Fix: Attach event to both button and icon for robustness
-if (themeToggle) {
-    themeToggle.addEventListener('click', toggleTheme);
-}
-if (themeIcon) {
-    themeIcon.addEventListener('click', toggleTheme);
-}
-// On load, set theme from localStorage
-const savedTheme = localStorage.getItem('theme') || 'light';
-setTheme(savedTheme);
+// Username set in validateSession
 
-// Set username
-document.getElementById('userName').textContent = localStorage.getItem('fullName') || localStorage.getItem('username');
 
 // Change Password Modal Functions
 function showChangePasswordModal() {
@@ -63,37 +49,37 @@ function closeChangePasswordModal() {
 
 async function handleChangePassword(event) {
     event.preventDefault();
-    
+
     const currentPassword = document.getElementById('currentPassword').value;
     const newPassword = document.getElementById('newPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
-    
+
     if (newPassword !== confirmPassword) {
         alert('New passwords do not match!');
         return;
     }
-    
+
     if (newPassword.length < 6) {
         alert('Password must be at least 6 characters long!');
         return;
     }
-    
+
     try {
         const response = await fetch(`${API_URL}/auth/change-password`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify({
                 userId: parseInt(currentUserId),
                 oldPassword: currentPassword,
                 newPassword: newPassword
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok) {
             alert('✅ ' + result.message);
             closeChangePasswordModal();
@@ -107,7 +93,7 @@ async function handleChangePassword(event) {
 }
 
 // Close modal when clicking outside
-window.addEventListener('click', function(event) {
+window.addEventListener('click', function (event) {
     const modal = document.getElementById('changePasswordModal');
     if (event.target === modal) {
         closeChangePasswordModal();
@@ -142,8 +128,8 @@ function showEmptyState(container, message, icon = '📭') {
 }
 
 // Logout function
-function logout() {
-    localStorage.clear();
+async function logout() {
+    await clearAuthData(); // Clear both localStorage and cookies (and call backend)
     window.location.href = 'index.html';
 }
 
@@ -176,30 +162,30 @@ async function apiCall(endpoint, method = 'GET', body = null) {
         const options = {
             method,
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include' // Send Cookie
         };
         if (body) options.body = JSON.stringify(body);
-        
+
         const response = await fetch(`${API_URL}${endpoint}`, options);
         if (response.status === 401) {
             logout();
             return null;
         }
-        
+
         // Check if response is actually JSON
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
             const data = await response.json();
-            
+
             // Check if response is successful
             if (!response.ok) {
                 // Throw error with message from API if available
                 const errorMsg = data.message || `Request failed: ${response.status} ${response.statusText}`;
                 throw new Error(errorMsg);
             }
-            
+
             return data;
         } else {
             // If not JSON, read as text for debugging
@@ -225,7 +211,7 @@ function showToast(message, type = 'success', title = null) {
         container.setAttribute('aria-live', 'polite');
         document.body.appendChild(container);
     }
-    
+
     // Define icons and titles for each type
     const config = {
         success: { icon: '✅', defaultTitle: 'Success!' },
@@ -233,9 +219,9 @@ function showToast(message, type = 'success', title = null) {
         warning: { icon: '⚠️', defaultTitle: 'Warning!' },
         info: { icon: 'ℹ️', defaultTitle: 'Info' }
     };
-    
+
     const { icon, defaultTitle } = config[type] || config.info;
-    
+
     // Create toast element
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
@@ -247,9 +233,9 @@ function showToast(message, type = 'success', title = null) {
         </div>
         <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Close notification">&times;</button>
     `;
-    
+
     container.appendChild(toast);
-    
+
     // Auto remove after 4 seconds
     setTimeout(() => {
         toast.classList.add('toast-exit');
@@ -263,7 +249,7 @@ function showToast(message, type = 'success', title = null) {
 function showConfirmModal(options) {
     return new Promise((resolve) => {
         const { title, message, type = 'warning', confirmText = 'Confirm', cancelText = 'Cancel' } = options;
-        
+
         // Define icons for each type
         const icons = {
             warning: '⚠️',
@@ -271,11 +257,11 @@ function showConfirmModal(options) {
             success: '✅',
             info: 'ℹ️'
         };
-        
+
         // Remove existing modal if any
         const existingModal = document.querySelector('.confirm-modal-overlay');
         if (existingModal) existingModal.remove();
-        
+
         // Create modal
         const overlay = document.createElement('div');
         overlay.className = 'confirm-modal-overlay active';
@@ -290,16 +276,16 @@ function showConfirmModal(options) {
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(overlay);
-        
+
         // Focus trap for accessibility - Tab stays within modal
         const cancelBtn = overlay.querySelector('#confirmCancel');
         const confirmBtn = overlay.querySelector('#confirmOk');
         const focusableElements = [cancelBtn, confirmBtn];
         let currentFocusIndex = 1; // Start on confirm button
         confirmBtn.focus();
-        
+
         // Trap Tab key within modal
         overlay.addEventListener('keydown', (e) => {
             if (e.key === 'Tab') {
@@ -318,18 +304,18 @@ function showConfirmModal(options) {
                 resolve(false);
             }
         });
-        
+
         // Event handlers
         cancelBtn.onclick = () => {
             overlay.remove();
             resolve(false);
         };
-        
+
         confirmBtn.onclick = () => {
             overlay.remove();
             resolve(true);
         };
-        
+
         // Close on overlay click
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
@@ -345,11 +331,11 @@ function showConfirmModal(options) {
 // ==========================================
 function showSuccessScreen(options) {
     const { title, message, details = [], buttonText = 'Continue', onClose } = options;
-    
+
     // Remove existing screen if any
     const existingScreen = document.querySelector('.success-screen');
     if (existingScreen) existingScreen.remove();
-    
+
     // Build details HTML
     let detailsHtml = '';
     if (details.length > 0) {
@@ -362,7 +348,7 @@ function showSuccessScreen(options) {
             `).join('')}
         </div>`;
     }
-    
+
     const screen = document.createElement('div');
     screen.className = 'success-screen active';
     screen.innerHTML = `
@@ -376,7 +362,7 @@ function showSuccessScreen(options) {
             <button class="btn-primary" onclick="this.closest('.success-screen').remove(); ${onClose ? onClose + '()' : ''}">${buttonText}</button>
         </div>
     `;
-    
+
     document.body.appendChild(screen);
 }
 
@@ -433,7 +419,7 @@ async function loadUsers() {
     console.log('Users loaded:', window.allUsers.length, 'users');
     console.log('Sample user:', JSON.stringify(window.allUsers[0]));
     displayUsers(users);
-    
+
     // Reset filters when loading users
     const searchInput = document.getElementById('searchUsers');
     const roleFilter = document.getElementById('filterRole');
@@ -444,7 +430,7 @@ async function loadUsers() {
 function displayUsers(users) {
     const tbody = document.querySelector('#usersTable tbody');
     tbody.innerHTML = '';
-    
+
     if (!users || users.length === 0) {
         // Show empty message in table body instead of replacing entire container
         const tr = document.createElement('tr');
@@ -456,14 +442,14 @@ function displayUsers(users) {
         tbody.appendChild(tr);
         return;
     }
-    
+
     // Sort: Admin first, then by newest (ID DESC)
     users.sort((a, b) => {
         if (a.role === 'Admin' && b.role !== 'Admin') return -1;
         if (b.role === 'Admin' && a.role !== 'Admin') return 1;
         return b.userId - a.userId;
     });
-    
+
     users.forEach(user => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -493,32 +479,32 @@ function filterUsersByRole() {
     if (!searchInput || typeof searchInput.value === 'undefined') return;
     const roleValue = roleFilter.value.trim();
     const searchValue = searchInput.value.trim().toLowerCase();
-    
+
     // Get all users
     const allUsers = window.allUsers || [];
-    
+
     // Start with all users
     let filteredUsers = allUsers;
-    
+
     // Filter by role if selected
     if (roleValue !== '') {
-        filteredUsers = filteredUsers.filter(function(user) {
+        filteredUsers = filteredUsers.filter(function (user) {
             return user.role && user.role.toLowerCase() === roleValue.toLowerCase();
         });
     }
-    
+
     // Filter by search term if entered
     if (searchValue !== '') {
-        filteredUsers = filteredUsers.filter(function(user) {
+        filteredUsers = filteredUsers.filter(function (user) {
             const username = (user.username || '').toLowerCase();
             const fullName = (user.fullName || '').toLowerCase();
             const email = (user.email || '').toLowerCase();
-            return username.includes(searchValue) || 
-                   fullName.includes(searchValue) || 
-                   email.includes(searchValue);
+            return username.includes(searchValue) ||
+                fullName.includes(searchValue) ||
+                email.includes(searchValue);
         });
     }
-    
+
     // Display filtered results
     displayUsers(filteredUsers);
 }
@@ -589,7 +575,7 @@ async function loadCourses() {
 function displayCourses(courses) {
     const tbody = document.querySelector('#coursesTable tbody');
     tbody.innerHTML = '';
-    
+
     courses.forEach(course => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -609,21 +595,21 @@ function displayCourses(courses) {
 function filterCourses() {
     const chFilter = document.getElementById('filterCourseCH').value;
     const searchTerm = document.getElementById('searchCourses').value.toLowerCase();
-    
+
     let filtered = window.allCourses || [];
-    
+
     if (chFilter) {
         const creditHours = parseInt(chFilter);
         filtered = filtered.filter(c => c.creditHours === creditHours);
     }
-    
+
     if (searchTerm) {
-        filtered = filtered.filter(c => 
+        filtered = filtered.filter(c =>
             c.courseCode.toLowerCase().includes(searchTerm) ||
             c.courseName.toLowerCase().includes(searchTerm)
         );
     }
-    
+
     displayCourses(filtered);
 }
 
@@ -635,16 +621,16 @@ async function editCourse(id) {
             showAlert('Course not found', 'error');
             return;
         }
-        
+
         const newCode = prompt('Course Code:', thisCourse.courseCode);
         if (newCode === null) return; // User cancelled
-        
+
         const newName = prompt('Course Name:', thisCourse.courseName);
         if (newName === null) return;
-        
+
         const newCredits = prompt('Credit Hours:', thisCourse.creditHours);
         if (newCredits === null) return;
-        
+
         if (newCode && newName && newCredits) {
             const result = await apiCall(`/admin/courses/${id}`, 'PUT', {
                 courseId: id,
@@ -653,7 +639,7 @@ async function editCourse(id) {
                 creditHours: parseInt(newCredits),
                 isActive: true
             });
-            
+
             if (result) {
                 showAlert('Course updated successfully', 'success');
                 loadCourses();
@@ -688,7 +674,7 @@ document.getElementById('createCourseForm').addEventListener('submit', async (e)
     const data = Object.fromEntries(formData.entries());
     data.creditHours = parseInt(data.creditHours);
     data.isActive = true; // Always active
-    
+
     try {
         const result = await apiCall('/admin/courses', 'POST', data);
         if (result && result.message) {
@@ -723,14 +709,14 @@ async function loadSections() {
         // Sort by sectionId descending (newest first)
         sections.sort((a, b) => b.sectionId - a.sectionId);
         window.allSections = sections; // Store globally for filtering
-        
+
         // Populate session filter dropdown with ALL sessions
         const sessionFilter = document.getElementById('filterSectionSession');
         sessionFilter.innerHTML = '<option value="">All Sessions</option>';
         sessions.forEach(session => {
             sessionFilter.innerHTML += `<option value="${session.sessionName}">${session.sessionName}</option>`;
         });
-        
+
         displaySections(sections);
     } catch (error) {
         console.error('Error loading sections:', error);
@@ -741,7 +727,7 @@ async function loadSections() {
 function displaySections(sections) {
     const tbody = document.querySelector('#sectionsTable tbody');
     tbody.innerHTML = '';
-    
+
     sections.forEach(section => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -761,20 +747,20 @@ function displaySections(sections) {
 function filterSections() {
     const sessionFilter = document.getElementById('filterSectionSession').value;
     const searchTerm = document.getElementById('searchSections').value.toLowerCase();
-    
+
     let filtered = window.allSections || [];
-    
+
     if (sessionFilter) {
         filtered = filtered.filter(s => s.sessionName === sessionFilter);
     }
-    
+
     if (searchTerm) {
-        filtered = filtered.filter(s => 
+        filtered = filtered.filter(s =>
             s.sectionName.toLowerCase().includes(searchTerm) ||
             (s.sessionName && s.sessionName.toLowerCase().includes(searchTerm))
         );
     }
-    
+
     displaySections(filtered);
 }
 
@@ -783,21 +769,21 @@ async function editSection(id) {
         const sections = await apiCall('/admin/sections');
         const section = sections.find(s => s.sectionId === id);
         if (!section) return;
-        
+
         const newName = prompt('Section Name:', section.sectionName);
         if (newName === null) return; // User cancelled
-        
+
         if (newName.trim() === '') {
             showAlert('Section name cannot be empty', 'error');
             return;
         }
-        
+
         const result = await apiCall(`/admin/sections/${id}`, 'PUT', {
             sectionName: newName.trim(),
             sessionId: section.sessionId,
             isActive: true
         });
-        
+
         if (result && result.message) {
             showAlert(result.message);
         } else {
@@ -811,7 +797,7 @@ async function editSection(id) {
 
 async function deleteSection(id) {
     if (!confirm('Are you sure you want to delete this section?')) return;
-    
+
     try {
         await apiCall(`/admin/sections/${id}`, 'DELETE');
         showAlert('Section deleted successfully');
@@ -837,7 +823,7 @@ document.getElementById('createSectionForm').addEventListener('submit', async (e
     const data = Object.fromEntries(formData.entries());
     data.isActive = true; // Always active
     data.sessionId = data.sessionId ? parseInt(data.sessionId) : null;
-    
+
     try {
         const result = await apiCall('/admin/sections', 'POST', data);
         if (result && result.message) {
@@ -873,7 +859,7 @@ async function loadSessions() {
 function displaySessions(sessions) {
     const tbody = document.querySelector('#sessionsTable tbody');
     tbody.innerHTML = '';
-    
+
     sessions.forEach(session => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -893,15 +879,15 @@ function displaySessions(sessions) {
 // Filter sessions by name
 function filterSessions() {
     const searchTerm = document.getElementById('searchSessions').value.toLowerCase();
-    
+
     let filtered = window.allSessions || [];
-    
+
     if (searchTerm) {
-        filtered = filtered.filter(s => 
+        filtered = filtered.filter(s =>
             s.sessionName.toLowerCase().includes(searchTerm)
         );
     }
-    
+
     displaySessions(filtered);
 }
 
@@ -909,11 +895,11 @@ async function editSession(id) {
     const sessions = await apiCall('/admin/sessions');
     const session = sessions.find(s => s.sessionId === id);
     if (!session) return;
-    
+
     const newName = prompt('Session Name:', session.sessionName);
     const newStart = prompt('Start Date (YYYY-MM-DD):', session.startDate.split('T')[0]);
     const newEnd = prompt('End Date (YYYY-MM-DD):', session.endDate.split('T')[0]);
-    
+
     if (newName && newStart && newEnd) {
         await apiCall(`/admin/sessions/${id}`, 'PUT', {
             sessionName: newName,
@@ -948,7 +934,7 @@ document.getElementById('createSessionForm').addEventListener('submit', async (e
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
     data.isActive = true; // Always active
-    
+
     try {
         const result = await apiCall('/admin/sessions', 'POST', data);
         if (result && result.message) {
@@ -1003,33 +989,33 @@ async function loadAssignmentData() {
             studentSelect.innerHTML += '<option value="" disabled>No students available</option>';
         }
 
-    // Populate course selects
-    [document.getElementById('courseSelectTeacher'), document.getElementById('courseSelectStudent')].forEach(select => {
-        select.innerHTML = '<option value="">Select Course</option>';
-        courses.forEach(course => {
-            select.innerHTML += `<option value="${course.courseId}">${course.courseName} (${course.courseCode})</option>`;
+        // Populate course selects
+        [document.getElementById('courseSelectTeacher'), document.getElementById('courseSelectStudent')].forEach(select => {
+            select.innerHTML = '<option value="">Select Course</option>';
+            courses.forEach(course => {
+                select.innerHTML += `<option value="${course.courseId}">${course.courseName} (${course.courseCode})</option>`;
+            });
         });
-    });
 
-    // Populate section selects
-    [document.getElementById('sectionSelectTeacher')].forEach(select => {
-        select.innerHTML = '<option value="">Select Section</option>';
-        sections.forEach(section => {
-            const sessionInfo = section.sessionName ? ` (${section.sessionName})` : '';
-            select.innerHTML += `<option value="${section.sectionId}">${section.sectionName}${sessionInfo}</option>`;
+        // Populate section selects
+        [document.getElementById('sectionSelectTeacher')].forEach(select => {
+            select.innerHTML = '<option value="">Select Section</option>';
+            sections.forEach(section => {
+                const sessionInfo = section.sessionName ? ` (${section.sessionName})` : '';
+                select.innerHTML += `<option value="${section.sectionId}">${section.sectionName}${sessionInfo}</option>`;
+            });
         });
-    });
 
-    // Populate session selects
-    [document.getElementById('sessionSelectTeacher'), document.getElementById('sessionSelectStudent')].forEach(select => {
-        select.innerHTML = '<option value="">Select Session</option>';
-        sessions.forEach(session => {
-            select.innerHTML += `<option value="${session.sessionId}">${session.sessionName}</option>`;
+        // Populate session selects
+        [document.getElementById('sessionSelectTeacher'), document.getElementById('sessionSelectStudent')].forEach(select => {
+            select.innerHTML = '<option value="">Select Session</option>';
+            sessions.forEach(session => {
+                select.innerHTML += `<option value="${session.sessionId}">${session.sessionName}</option>`;
+            });
         });
-    });
 
-    // Load teacher assignments table
-    loadTeacherAssignments();
+        // Load teacher assignments table
+        loadTeacherAssignments();
     } catch (error) {
         console.error('Error loading assignment data:', error);
         showAlert('Error loading assignment data: ' + error.message, 'error');
@@ -1048,7 +1034,7 @@ async function loadEnrollmentData() {
         ]);
 
         console.log('Loading enrollment data - Students:', students);
-        
+
         // Store globally for course dropdown updates
         window.allCoursesForEnrollment = courses;
         window.allEnrollmentsForDropdown = enrollments;
@@ -1102,23 +1088,23 @@ function updateCourseDropdownForStudent() {
     const studentSelect = document.getElementById('studentSelect');
     const courseSelect = document.getElementById('courseSelectStudent');
     const sessionSelect = document.getElementById('sessionSelectStudent');
-    
+
     const selectedStudentId = parseInt(studentSelect.value);
     const selectedSessionId = parseInt(sessionSelect.value);
-    
+
     const courses = window.allCoursesForEnrollment || [];
     const enrollments = window.allEnrollmentsForDropdown || [];
-    
+
     // Get active enrollments for this student
-    const studentEnrollments = enrollments.filter(e => 
+    const studentEnrollments = enrollments.filter(e =>
         e.studentId === selectedStudentId && e.status === 'Active'
     );
-    
+
     // Get course IDs that are already enrolled (for selected session if specified)
     const enrolledCourseIds = studentEnrollments
         .filter(e => !selectedSessionId || e.sessionId === selectedSessionId)
         .map(e => e.courseId);
-    
+
     // Rebuild course dropdown
     courseSelect.innerHTML = '<option value="">Select Course</option>';
     courses.forEach(course => {
@@ -1136,12 +1122,12 @@ async function loadTeacherAssignments() {
     try {
         const assignments = await apiCall('/admin/course-teachers');
         const tbody = document.getElementById('teacherAssignmentsTableBody');
-        
+
         if (!assignments || assignments.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No teacher assignments found</td></tr>';
             return;
         }
-        
+
         tbody.innerHTML = assignments.map(assignment => `
             <tr>
                 <td>${assignment.courseTeacherId}</td>
@@ -1166,10 +1152,10 @@ async function loadStudentEnrollments() {
         const enrollments = await apiCall('/admin/course-enrollments');
         window.allEnrollments = enrollments; // Store globally for filtering
         window.allEnrollmentsForDropdown = enrollments; // Also update for dropdown
-        
+
         // Update course dropdown if student is selected
         updateCourseDropdownForStudent();
-        
+
         // Populate course filter dropdown
         const courseFilter = document.getElementById('filterEnrollmentCourse');
         courseFilter.innerHTML = '<option value="">All Courses</option>';
@@ -1177,7 +1163,7 @@ async function loadStudentEnrollments() {
         uniqueCourses.forEach(course => {
             courseFilter.innerHTML += `<option value="${course}">${course}</option>`;
         });
-        
+
         // Populate section filter dropdown
         const sectionFilter = document.getElementById('filterEnrollmentSection');
         sectionFilter.innerHTML = '<option value="">All Sections</option>';
@@ -1185,7 +1171,7 @@ async function loadStudentEnrollments() {
         uniqueSections.forEach(section => {
             sectionFilter.innerHTML += `<option value="${section}">${section}</option>`;
         });
-        
+
         displayEnrollments(enrollments);
     } catch (error) {
         console.error('Error loading enrollments:', error);
@@ -1195,15 +1181,15 @@ async function loadStudentEnrollments() {
 
 function displayEnrollments(enrollments) {
     const tbody = document.getElementById('enrollmentsTableBody');
-    
+
     if (!enrollments || enrollments.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No student enrollments found</td></tr>';
         return;
     }
-    
+
     // Sort by enrollmentId descending (newest first)
     enrollments.sort((a, b) => b.enrollmentId - a.enrollmentId);
-    
+
     tbody.innerHTML = enrollments.map(enrollment => `
         <tr>
             <td>${enrollment.enrollmentId}</td>
@@ -1228,19 +1214,19 @@ function filterEnrollments() {
     const courseFilter = document.getElementById('filterEnrollmentCourse').value;
     const sectionFilter = document.getElementById('filterEnrollmentSection').value;
     const searchTerm = document.getElementById('searchEnrollments').value.toLowerCase();
-    
+
     let filtered = window.allEnrollments || [];
-    
+
     if (courseFilter) {
         filtered = filtered.filter(e => e.courseName === courseFilter);
     }
-    
+
     if (sectionFilter) {
         filtered = filtered.filter(e => e.sectionName === sectionFilter);
     }
-    
+
     if (searchTerm) {
-        filtered = filtered.filter(e => 
+        filtered = filtered.filter(e =>
             e.studentName.toLowerCase().includes(searchTerm) ||
             e.rollNumber.toLowerCase().includes(searchTerm) ||
             e.courseName.toLowerCase().includes(searchTerm) ||
@@ -1248,14 +1234,14 @@ function filterEnrollments() {
             e.sessionName.toLowerCase().includes(searchTerm)
         );
     }
-    
+
     displayEnrollments(filtered);
 }
 
 // Delete Teacher Assignment
 async function deleteTeacherAssignment(id) {
     if (!confirm('Are you sure you want to remove this teacher assignment?')) return;
-    
+
     try {
         await apiCall(`/admin/course-teachers/${id}`, 'DELETE');
         showAlert('Teacher assignment removed successfully', 'success');
@@ -1268,7 +1254,7 @@ async function deleteTeacherAssignment(id) {
 // Delete Student Enrollment
 async function deleteEnrollment(id) {
     if (!confirm('Are you sure you want to remove this enrollment?')) return;
-    
+
     try {
         await apiCall(`/admin/course-enrollments/${id}`, 'DELETE');
         showAlert('Enrollment removed successfully', 'success');
@@ -1288,13 +1274,13 @@ async function editEnrollment(enrollmentId) {
             showToast('Enrollment not found', 'error');
             return;
         }
-        
+
         // Get all courses and sessions for dropdown
         const [courses, sessions] = await Promise.all([
             apiCall('/admin/courses'),
             apiCall('/admin/sessions')
         ]);
-        
+
         // Create modal
         const modal = document.createElement('div');
         modal.className = 'confirm-modal-overlay active';
@@ -1323,21 +1309,21 @@ async function editEnrollment(enrollmentId) {
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(modal);
-        
+
         // Focus trap
         const saveBtn = modal.querySelector('#saveEditEnrollment');
         const cancelBtn = modal.querySelector('#cancelEditEnrollment');
         saveBtn.focus();
-        
+
         // Event handlers
         cancelBtn.onclick = () => modal.remove();
-        
+
         saveBtn.onclick = async () => {
             const newCourseId = parseInt(document.getElementById('editEnrollmentCourse').value);
             const newSessionId = parseInt(document.getElementById('editEnrollmentSession').value);
-            
+
             try {
                 await apiCall(`/admin/course-enrollments/${enrollmentId}`, 'PUT', {
                     courseId: newCourseId,
@@ -1350,17 +1336,17 @@ async function editEnrollment(enrollmentId) {
                 showToast('Failed to update: ' + error.message, 'error');
             }
         };
-        
+
         // Close on Escape
         modal.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') modal.remove();
         });
-        
+
         // Close on overlay click
         modal.addEventListener('click', (e) => {
             if (e.target === modal) modal.remove();
         });
-        
+
     } catch (error) {
         showToast('Error loading enrollment data: ' + error.message, 'error');
     }
@@ -1391,29 +1377,29 @@ async function updateEnrollmentStatus(enrollmentId, newStatus) {
 async function loadAttendances() {
     try {
         const attendances = await apiCall('/admin/attendances');
-        
+
         // Store globally for filtering
         window.allAttendanceRecords = attendances;
-        
+
         // Hide the table header in summary view
         const tableHeader = document.getElementById('attendanceTableHeader');
         if (tableHeader) tableHeader.style.display = 'none';
-        
+
         // Remove any existing filter dropdowns
         const filtersContainer = document.getElementById('attendanceFilters');
         const existingSelects = filtersContainer.querySelectorAll('select');
         existingSelects.forEach(select => select.remove());
-        
+
         const tbody = document.getElementById('attendanceTableBody');
-        
+
         if (!attendances || attendances.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No attendance records found</td></tr>';
             return;
         }
-        
+
         // Sort by attendanceId descending (newest first)
         attendances.sort((a, b) => b.attendanceId - a.attendanceId);
-        
+
         // Group by student
         const studentGroups = {};
         attendances.forEach(att => {
@@ -1427,7 +1413,7 @@ async function loadAttendances() {
             }
             studentGroups[att.studentId].records.push(att);
         });
-        
+
         // Display grouped summary (without status column)
         tbody.innerHTML = `
             <tr style="background: #f5f5f5; font-weight: bold;">
@@ -1441,7 +1427,7 @@ async function loadAttendances() {
             const present = group.records.filter(r => r.status === 'Present').length;
             const absent = group.records.filter(r => r.status === 'Absent').length;
             const percentage = ((present / total) * 100).toFixed(1);
-            
+
             return `
                 <tr class="clickable-row" onclick="showStudentDetails(${group.studentId}, '${group.studentName}')">
                     <td style="text-align: center;">-</td>
@@ -1463,18 +1449,18 @@ async function showAllAttendanceRecords() {
     try {
         const attendances = await apiCall('/admin/attendances');
         window.allAttendanceRecords = attendances;
-        
+
         // Show the table header in detailed view
         const tableHeader = document.getElementById('attendanceTableHeader');
         if (tableHeader) tableHeader.style.display = '';
-        
+
         // Add section and session filter dropdowns
         const filtersContainer = document.getElementById('attendanceFilters');
-        
+
         // Remove any existing select elements
         const existingSelects = filtersContainer.querySelectorAll('select');
         existingSelects.forEach(select => select.remove());
-        
+
         // Create section filter
         const sectionFilter = document.createElement('select');
         sectionFilter.id = 'filterAttendanceSection';
@@ -1486,7 +1472,7 @@ async function showAllAttendanceRecords() {
             sectionFilter.innerHTML += `<option value="${section}">${section}</option>`;
         });
         filtersContainer.appendChild(sectionFilter);
-        
+
         // Create session filter
         const sessionFilter = document.createElement('select');
         sessionFilter.id = 'filterAttendanceSession';
@@ -1498,7 +1484,7 @@ async function showAllAttendanceRecords() {
             sessionFilter.innerHTML += `<option value="${session}">${session}</option>`;
         });
         filtersContainer.appendChild(sessionFilter);
-        
+
         displayAllAttendanceRecords(attendances);
     } catch (error) {
         showAlert('Error loading records', 'error');
@@ -1507,7 +1493,7 @@ async function showAllAttendanceRecords() {
 
 function displayAllAttendanceRecords(attendances) {
     const tbody = document.getElementById('attendanceTableBody');
-    
+
     tbody.innerHTML = `
         <tr style="background: #f5f5f5;">
             <td colspan="9">
@@ -1537,27 +1523,27 @@ function filterAttendance() {
     const sectionFilterEl = document.getElementById('filterAttendanceSection');
     const sessionFilterEl = document.getElementById('filterAttendanceSession');
     const searchTerm = document.getElementById('searchAttendance').value.toLowerCase();
-    
+
     let filtered = window.allAttendanceRecords || [];
-    
+
     // Only apply filters if elements exist (in detailed view)
     if (sectionFilterEl && sectionFilterEl.value) {
         filtered = filtered.filter(a => a.sectionName === sectionFilterEl.value);
     }
-    
+
     if (sessionFilterEl && sessionFilterEl.value) {
         filtered = filtered.filter(a => a.sessionName === sessionFilterEl.value);
     }
-    
+
     if (searchTerm) {
-        filtered = filtered.filter(a => 
+        filtered = filtered.filter(a =>
             a.studentName.toLowerCase().includes(searchTerm) ||
             a.rollNumber.toLowerCase().includes(searchTerm) ||
             a.courseName.toLowerCase().includes(searchTerm) ||
             a.courseCode.toLowerCase().includes(searchTerm)
         );
     }
-    
+
     displayAllAttendanceRecords(filtered);
 }
 
@@ -1566,24 +1552,24 @@ async function showStudentDetails(studentId, studentName) {
     try {
         const attendances = await apiCall('/admin/attendances');
         const studentAtt = attendances.filter(a => a.studentId === studentId);
-        
+
         // Show the table header in detailed view
         const tableHeader = document.getElementById('attendanceTableHeader');
         if (tableHeader) tableHeader.style.display = '';
-        
+
         const tbody = document.getElementById('attendanceTableBody');
-        
+
         if (studentAtt.length === 0) {
             showAlert(`No attendance records found for ${studentName}`, 'info');
             return;
         }
-        
+
         // Calculate statistics
         const total = studentAtt.length;
         const present = studentAtt.filter(a => a.status === 'Present').length;
         const absent = studentAtt.filter(a => a.status === 'Absent').length;
         const percentage = ((present / total) * 100).toFixed(2);
-        
+
         tbody.innerHTML = `
             <tr style="background: #e3f2fd;">
                 <td colspan="9">
@@ -1617,18 +1603,18 @@ async function showCourseAttendance(courseId, courseName) {
     try {
         const attendances = await apiCall('/admin/attendances');
         const courseAtt = attendances.filter(a => a.courseId === courseId);
-        
+
         // Show the table header in detailed view
         const tableHeader = document.getElementById('attendanceTableHeader');
         if (tableHeader) tableHeader.style.display = '';
-        
+
         const tbody = document.getElementById('attendanceTableBody');
-        
+
         if (courseAtt.length === 0) {
             showAlert(`No attendance records found for ${courseName}`, 'info');
             return;
         }
-        
+
         tbody.innerHTML = `
             <tr style="background: #e3f2fd;">
                 <td colspan="9">
@@ -1708,12 +1694,12 @@ async function loadTimetable() {
     try {
         const timetables = await apiCall('/admin/timetables');
         const tbody = document.getElementById('timetableTableBody');
-        
+
         if (!timetables || timetables.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No timetable entries found</td></tr>';
             return;
         }
-        
+
         // Group by teacher
         const teacherGroups = {};
         timetables.forEach(entry => {
@@ -1728,7 +1714,7 @@ async function loadTimetable() {
             teacherGroups[entry.teacherId].courses.add(entry.courseName);
             teacherGroups[entry.teacherId].entries.push(entry);
         });
-        
+
         // Display grouped summary by teacher
         tbody.innerHTML = `
             <tr style="background: #f5f5f5; font-weight: bold;">
@@ -1759,7 +1745,7 @@ async function showTimetableByCourse() {
     try {
         const timetables = await apiCall('/admin/timetables');
         const tbody = document.getElementById('timetableTableBody');
-        
+
         // Group by course
         const courseGroups = {};
         timetables.forEach(entry => {
@@ -1775,7 +1761,7 @@ async function showTimetableByCourse() {
             courseGroups[entry.courseId].teachers.add(entry.teacherName);
             courseGroups[entry.courseId].entries.push(entry);
         });
-        
+
         tbody.innerHTML = `
             <tr style="background: #f5f5f5; font-weight: bold;">
                 <td colspan="9">
@@ -1804,7 +1790,7 @@ async function showAllTimetableRecords() {
     try {
         const timetables = await apiCall('/admin/timetables');
         const tbody = document.getElementById('timetableTableBody');
-        
+
         tbody.innerHTML = `
             <tr style="background: #f5f5f5;">
                 <td colspan="9">
@@ -1842,14 +1828,14 @@ async function showCourseTimetable(courseId, courseName) {
     try {
         const timetables = await apiCall('/admin/timetables');
         const courseTimetable = timetables.filter(t => t.courseId === courseId);
-        
+
         const tbody = document.getElementById('timetableTableBody');
-        
+
         if (courseTimetable.length === 0) {
             showAlert(`No timetable entries found for ${courseName}`, 'info');
             return;
         }
-        
+
         tbody.innerHTML = `
             <tr style="background: #e3f2fd;">
                 <td colspan="9">
@@ -1886,14 +1872,14 @@ async function showTeacherTimetable(teacherId, teacherName) {
     try {
         const timetables = await apiCall('/admin/timetables');
         const teacherTimetable = timetables.filter(t => t.teacherId === teacherId);
-        
+
         const tbody = document.getElementById('timetableTableBody');
-        
+
         if (teacherTimetable.length === 0) {
             showAlert(`No timetable entries found for ${teacherName}`, 'info');
             return;
         }
-        
+
         tbody.innerHTML = `
             <tr style="background: #e3f2fd;">
                 <td colspan="9">
@@ -1930,14 +1916,14 @@ async function editTimetable(id) {
         const timetables = await apiCall('/admin/timetables');
         const entry = timetables.find(t => t.timetableId === id);
         if (!entry) return;
-        
+
         // Load fresh data for dropdowns
         const [courses, teachers, sections] = await Promise.all([
             apiCall('/admin/courses'),
             apiCall('/admin/teachers'),
             apiCall('/admin/sections')
         ]);
-        
+
         // Create a modal-like form
         const modalHtml = `
             <div id="editTimetableModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
@@ -1948,17 +1934,17 @@ async function editTimetable(id) {
                             <div class="form-group">
                                 <label>Course *</label>
                                 <select name="courseId" required>
-                                    ${courses.map(c => 
-                                        `<option value="${c.courseId}" ${c.courseId === entry.courseId ? 'selected' : ''}>${c.courseName} (${c.courseCode})</option>`
-                                    ).join('')}
+                                    ${courses.map(c =>
+            `<option value="${c.courseId}" ${c.courseId === entry.courseId ? 'selected' : ''}>${c.courseName} (${c.courseCode})</option>`
+        ).join('')}
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>Teacher *</label>
                                 <select name="teacherId" required>
-                                    ${teachers.map(t => 
-                                        `<option value="${t.teacherId}" ${t.teacherId === entry.teacherId ? 'selected' : ''}>${t.fullName} (${t.employeeId})</option>`
-                                    ).join('')}
+                                    ${teachers.map(t =>
+            `<option value="${t.teacherId}" ${t.teacherId === entry.teacherId ? 'selected' : ''}>${t.fullName} (${t.employeeId})</option>`
+        ).join('')}
                                 </select>
                             </div>
                         </div>
@@ -1967,17 +1953,17 @@ async function editTimetable(id) {
                                 <label>Section</label>
                                 <select name="sectionId">
                                     <option value="">Select Section</option>
-                                    ${sections.map(s => 
-                                        `<option value="${s.sectionId}" ${s.sectionId === entry.sectionId ? 'selected' : ''}>${s.sectionName}</option>`
-                                    ).join('')}
+                                    ${sections.map(s =>
+            `<option value="${s.sectionId}" ${s.sectionId === entry.sectionId ? 'selected' : ''}>${s.sectionName}</option>`
+        ).join('')}
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>Day of Week *</label>
                                 <select name="dayOfWeek" required>
                                     ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day =>
-                                        `<option value="${day}" ${day === entry.dayOfWeek ? 'selected' : ''}>${day}</option>`
-                                    ).join('')}
+            `<option value="${day}" ${day === entry.dayOfWeek ? 'selected' : ''}>${day}</option>`
+        ).join('')}
                                 </select>
                             </div>
                         </div>
@@ -2003,18 +1989,18 @@ async function editTimetable(id) {
                 </div>
             </div>
         `;
-        
+
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
+
         document.getElementById('editTimetableForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
-            
+
             data.courseId = parseInt(data.courseId);
             data.teacherId = parseInt(data.teacherId);
             data.sectionId = data.sectionId ? parseInt(data.sectionId) : null;
-            
+
             // Format time strings
             if (data.startTime) {
                 data.startTime = data.startTime.length === 5 ? data.startTime + ':00' : data.startTime;
@@ -2022,7 +2008,7 @@ async function editTimetable(id) {
             if (data.endTime) {
                 data.endTime = data.endTime.length === 5 ? data.endTime + ':00' : data.endTime;
             }
-            
+
             await apiCall(`/admin/timetables/${id}`, 'PUT', data);
             showAlert('Timetable entry updated successfully', 'success');
             document.getElementById('editTimetableModal').remove();
@@ -2035,7 +2021,7 @@ async function editTimetable(id) {
 
 async function deleteTimetable(id) {
     if (!confirm('Are you sure you want to delete this timetable entry?')) return;
-    
+
     try {
         await apiCall(`/admin/timetables/${id}`, 'DELETE');
         showAlert('Timetable entry deleted successfully', 'success');
@@ -2054,7 +2040,7 @@ async function loadReports() {
         apiCall('/admin/courses'),
         apiCall('/admin/sessions')
     ]);
-    
+
     document.getElementById('totalUsers').textContent = users.length;
     document.getElementById('totalCourses').textContent = courses.length;
     document.getElementById('totalSessions').textContent = sessions.length;
@@ -2072,7 +2058,7 @@ async function editUser(userId) {
     let sectionsOptions = '';
     try {
         const sections = await apiCall('/admin/sections');
-        sectionsOptions = sections.map(s => 
+        sectionsOptions = sections.map(s =>
             `<option value="${s.sectionId}" ${user.sectionId === s.sectionId ? 'selected' : ''}>${s.sectionName}</option>`
         ).join('');
     } catch (e) {
@@ -2160,7 +2146,7 @@ function closeEditUserModal() {
 async function resetPassword(userId, username) {
     const newPassword = prompt(`Enter new password for ${username}:`);
     if (!newPassword) return;
-    
+
     // Strong password validation
     const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
     if (!strongPasswordRegex.test(newPassword)) {
@@ -2172,7 +2158,7 @@ async function resetPassword(userId, username) {
             userId: userId,
             newPassword: newPassword
         });
-        
+
         if (result && result.message) {
             showAlert(`Password reset successfully for ${username}`);
         }
@@ -2190,18 +2176,18 @@ async function deleteUser(userId, username) {
         confirmText: '🗑️ Delete',
         cancelText: 'Cancel'
     });
-    
+
     if (!confirmed) return;
-    
+
     try {
         await apiCall(`/admin/users/${userId}`, 'DELETE');
         showToast(`User "${username}" deleted successfully`, 'success', 'User Deleted');
         loadUsers();
-        
+
         // Refresh enrollment/assignment dropdowns if those sections are visible
         const enrollmentSection = document.getElementById('enrollments');
         const assignmentSection = document.getElementById('assign');
-        
+
         if (enrollmentSection && enrollmentSection.classList.contains('active')) {
             loadEnrollmentData();
         }
@@ -2226,13 +2212,13 @@ function filterTable(tableId, searchInputId) {
     for (let i = 0; i < rows.length; i++) {
         const cells = rows[i].getElementsByTagName('td');
         let found = false;
-        
+
         // Skip empty search - show all rows
         if (!filter) {
             rows[i].style.display = '';
             continue;
         }
-        
+
         for (let j = 0; j < cells.length; j++) {
             const cell = cells[j];
             if (cell) {
@@ -2243,7 +2229,7 @@ function filterTable(tableId, searchInputId) {
                 }
             }
         }
-        
+
         rows[i].style.display = found ? '' : 'none';
     }
 }
@@ -2257,13 +2243,13 @@ function filterTableByBody(tbodyId, searchInputId) {
     for (let i = 0; i < rows.length; i++) {
         const cells = rows[i].getElementsByTagName('td');
         let found = false;
-        
+
         // Skip empty search - show all rows
         if (!filter) {
             rows[i].style.display = '';
             continue;
         }
-        
+
         for (let j = 0; j < cells.length; j++) {
             const cell = cells[j];
             if (cell) {
@@ -2274,7 +2260,7 @@ function filterTableByBody(tbodyId, searchInputId) {
                 }
             }
         }
-        
+
         rows[i].style.display = found ? '' : 'none';
     }
 }
@@ -2309,20 +2295,20 @@ if (assignTeacherForm) {
         try {
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
-            
+
             console.log('Assigning teacher with data:', data);
-            
+
             // Convert to integers
             data.teacherId = parseInt(data.teacherId);
             data.courseId = parseInt(data.courseId);
             data.sessionId = parseInt(data.sessionId);
             data.sectionId = data.sectionId ? parseInt(data.sectionId) : null;
-            
+
             console.log('Converted data:', data);
-            
+
             const result = await apiCall('/admin/assign-teacher', 'POST', data);
             console.log('Assignment result:', result);
-            
+
             if (result && result.message) {
                 showAlert(result.message);
                 e.target.reset();
@@ -2345,20 +2331,20 @@ if (enrollStudentForm) {
         try {
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
-            
+
             console.log('Enrolling student with data:', data);
-            
+
             // Convert to integers
             data.studentId = parseInt(data.studentId);
             data.courseId = parseInt(data.courseId);
             data.sectionId = parseInt(data.sectionId);
             data.sessionId = parseInt(data.sessionId);
-            
+
             console.log('Converted data:', data);
-            
+
             const result = await apiCall('/admin/enroll-student', 'POST', data);
             console.log('Enrollment result:', result);
-            
+
             if (result && result.message) {
                 showAlert(result.message);
                 e.target.reset();
@@ -2383,12 +2369,12 @@ if (createTimetableForm) {
         try {
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
-            
+
             // Convert to appropriate types
             data.courseId = parseInt(data.courseId);
             data.teacherId = parseInt(data.teacherId);
             data.sectionId = data.sectionId ? parseInt(data.sectionId) : null;
-            
+
             // Format time strings properly (ensure HH:mm:ss format)
             if (data.startTime) {
                 data.startTime = data.startTime.length === 5 ? data.startTime + ':00' : data.startTime;
@@ -2396,9 +2382,9 @@ if (createTimetableForm) {
             if (data.endTime) {
                 data.endTime = data.endTime.length === 5 ? data.endTime + ':00' : data.endTime;
             }
-            
+
             const result = await apiCall('/admin/timetables', 'POST', data);
-            
+
             if (result && result.message) {
                 showAlert(result.message, 'success');
                 hideAddTimetableForm();
@@ -2416,7 +2402,7 @@ async function deleteAttendance(attendanceId) {
     if (!confirm('Are you sure you want to delete this attendance record? This action cannot be undone.')) {
         return;
     }
-    
+
     try {
         const result = await apiCall(`/admin/attendances/${attendanceId}`, 'DELETE');
         if (result && result.message) {

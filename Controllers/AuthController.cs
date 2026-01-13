@@ -25,9 +25,14 @@ namespace AttendanceManagementSystem.Controllers
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            if (user == null)
             {
-                return Unauthorized(new { message = "Invalid username or password" });
+                return Unauthorized(new { message = "Invalid username" });
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            {
+                return Unauthorized(new { message = "Wrong password" });
             }
 
             if (!user.IsActive)
@@ -37,18 +42,36 @@ namespace AttendanceManagementSystem.Controllers
 
             var token = _jwtService.GenerateToken(user.UserId, user.Username, user.Role);
 
+            // Set HttpOnly Cookie
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false, // Set to false for HTTP localhost
+                SameSite = SameSiteMode.Lax, // Allow cross-port on localhost
+                Expires = DateTime.UtcNow.AddMinutes(30) // Match token expiration
+            };
+            
+            Response.Cookies.Append("access_token", token, cookieOptions);
+
             user.LastLogin = DateTime.Now;
             await _context.SaveChangesAsync();
 
             return Ok(new
             {
-                token,
+                // Token removed from response body for security
                 userId = user.UserId,
                 username = user.Username,
                 role = user.Role,
                 fullName = user.FullName,
                 isFirstLogin = user.IsFirstLogin
             });
+        }
+
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("access_token");
+            return Ok(new { message = "Logged out successfully" });
         }
 
         [HttpPost("change-password")]

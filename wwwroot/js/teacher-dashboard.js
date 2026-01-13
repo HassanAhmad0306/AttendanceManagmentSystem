@@ -1,53 +1,53 @@
 const API_URL = 'http://localhost:5000/api';
-let token = localStorage.getItem('token');
+
+// Get authentication data (Authentication is now fully server-side via Cookies)
+let token = null; // Token is HttpOnly
 let currentTeacherId = null;
 let currentTeacherCourses = [];
-let attendanceData = [];
-let currentUserId = localStorage.getItem('userId');
+let currentUserId = null;
+let currentUserRole = null;
 
 
 // Set theme on load (persist dark/light mode) and provide toggle logic
-const themeToggle = document.getElementById('themeToggle');
-const themeIcon = document.getElementById('themeIcon');
-function setTheme(mode) {
-    if (mode === 'dark') {
-        document.body.classList.add('dark-mode');
-        if (themeIcon) {
-            themeIcon.classList.remove('fa-moon');
-            themeIcon.classList.add('fa-sun');
-            themeIcon.style.color = '#ffd200';
-            themeIcon.style.opacity = '1';
+// Verify session with backend and load initial data
+
+
+// Verify session with backend and load initial data
+async function validateSession() {
+    try {
+        showLoading();
+        const response = await fetch(`${API_URL}/auth/me`, {
+            headers: {},
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            throw new Error('Session invalid');
         }
-        localStorage.setItem('theme', 'dark');
-    } else {
-        document.body.classList.remove('dark-mode');
-        if (themeIcon) {
-            themeIcon.classList.remove('fa-sun');
-            themeIcon.classList.add('fa-moon');
-            themeIcon.style.color = '#764ba2';
-            themeIcon.style.opacity = '0.85';
+
+        const user = await response.json();
+
+        if (user.role !== 'Teacher') {
+            window.location.href = 'index.html';
+            return;
         }
-        localStorage.setItem('theme', 'light');
+
+        // Set global variables
+        currentUserId = user.userId;
+        currentTeacherId = user.userId;
+        currentUserRole = user.role;
+        document.getElementById('userName').textContent = user.fullName || user.username;
+
+        // Now safe to load teacher specific data
+        await loadTeacherCourses();
+        hideLoading();
+
+    } catch (e) {
+        console.error('Session validation failed:', e);
+        await clearAuthData();
+        window.location.href = 'index.html';
     }
 }
-function toggleTheme() {
-    const currentTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-    setTheme(currentTheme === 'dark' ? 'light' : 'dark');
-}
-if (themeToggle && themeIcon) {
-    themeToggle.addEventListener('click', toggleTheme);
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
-} else {
-    // fallback for pages without toggle button
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
-}
-
-// Check authentication
-if (!token) {
-        window.location.href = 'index.html';
-}
+validateSession();
 
 // Change Password Modal Functions
 function showChangePasswordModal() {
@@ -61,37 +61,39 @@ function closeChangePasswordModal() {
 
 async function handleChangePassword(event) {
     event.preventDefault();
-    
+
     const currentPassword = document.getElementById('currentPassword').value;
     const newPassword = document.getElementById('newPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
-    
+
     if (newPassword !== confirmPassword) {
         alert('New passwords do not match!');
         return;
     }
-    
-    if (newPassword.length < 6) {
-        alert('Password must be at least 6 characters long!');
+
+    // Strong password validation
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+    if (!strongPasswordRegex.test(newPassword)) {
+        alert('Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.');
         return;
     }
-    
+
     try {
         const response = await fetch(`${API_URL}/auth/change-password`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify({
                 userId: parseInt(currentUserId),
                 oldPassword: currentPassword,
                 newPassword: newPassword
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok) {
             alert('✅ ' + result.message);
             closeChangePasswordModal();
@@ -105,7 +107,7 @@ async function handleChangePassword(event) {
 }
 
 // Close modal when clicking outside
-window.addEventListener('click', function(event) {
+window.addEventListener('click', function (event) {
     const modal = document.getElementById('changePasswordModal');
     if (event.target === modal) {
         closeChangePasswordModal();
@@ -116,7 +118,7 @@ window.addEventListener('click', function(event) {
 function updateStatusColor(select) {
     // Remove all status classes
     select.classList.remove('status-present', 'status-absent', 'status-late', 'status-leave');
-    
+
     // Add class based on selected value
     const value = select.value;
     if (value === 'Present') select.classList.add('status-present');
@@ -137,16 +139,16 @@ function showToast(message, type = 'success', title = null) {
         container.setAttribute('aria-live', 'polite');
         document.body.appendChild(container);
     }
-    
+
     const config = {
         success: { icon: '✅', defaultTitle: 'Success!' },
         error: { icon: '❌', defaultTitle: 'Error!' },
         warning: { icon: '⚠️', defaultTitle: 'Warning!' },
         info: { icon: 'ℹ️', defaultTitle: 'Info' }
     };
-    
+
     const { icon, defaultTitle } = config[type] || config.info;
-    
+
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.innerHTML = `
@@ -157,7 +159,7 @@ function showToast(message, type = 'success', title = null) {
         </div>
         <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Close">&times;</button>
     `;
-    
+
     container.appendChild(toast);
     setTimeout(() => {
         toast.classList.add('toast-exit');
@@ -170,10 +172,10 @@ function showConfirmModal(options) {
     return new Promise((resolve) => {
         const { title, message, type = 'warning', confirmText = 'Confirm', cancelText = 'Cancel' } = options;
         const icons = { warning: '⚠️', danger: '🗑️', success: '✅', info: 'ℹ️' };
-        
+
         const existingModal = document.querySelector('.confirm-modal-overlay');
         if (existingModal) existingModal.remove();
-        
+
         const overlay = document.createElement('div');
         overlay.className = 'confirm-modal-overlay active';
         overlay.innerHTML = `
@@ -187,16 +189,16 @@ function showConfirmModal(options) {
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(overlay);
-        
+
         // Focus trap for accessibility - Tab stays within modal
         const cancelBtn = overlay.querySelector('#confirmCancel');
         const confirmBtn = overlay.querySelector('#confirmOk');
         const focusableElements = [cancelBtn, confirmBtn];
         let currentFocusIndex = 1;
         confirmBtn.focus();
-        
+
         overlay.addEventListener('keydown', (e) => {
             if (e.key === 'Tab') {
                 e.preventDefault();
@@ -209,7 +211,7 @@ function showConfirmModal(options) {
             }
             if (e.key === 'Escape') { overlay.remove(); resolve(false); }
         });
-        
+
         cancelBtn.onclick = () => { overlay.remove(); resolve(false); };
         confirmBtn.onclick = () => { overlay.remove(); resolve(true); };
         overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.remove(); resolve(false); } });
@@ -219,17 +221,17 @@ function showConfirmModal(options) {
 // HCI: Success Screen
 function showSuccessScreen(options) {
     const { title, message, details = [], buttonText = 'Continue', onClose } = options;
-    
+
     const existingScreen = document.querySelector('.success-screen');
     if (existingScreen) existingScreen.remove();
-    
+
     let detailsHtml = '';
     if (details.length > 0) {
         detailsHtml = `<div class="success-details">
             ${details.map(d => `<div class="success-details-item"><span class="success-details-label">${d.label}</span><span class="success-details-value">${d.value}</span></div>`).join('')}
         </div>`;
     }
-    
+
     const screen = document.createElement('div');
     screen.className = 'success-screen active';
     screen.innerHTML = `
@@ -273,56 +275,33 @@ function showEmptyState(container, message, icon = '📭') {
     `;
 }
 
-// Load teacher info
+// Load teacher info - Now handled in validateSession, keeping this as alias/refresh if needed
 async function loadTeacherInfo() {
-    showLoading();
-    try {
-        const response = await fetch(`${API_URL}/auth/me`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (!response.ok) {
-            localStorage.clear();
-            window.location.href = 'index.html';
-            return;
-        }
-        
-        const user = await response.json();
-        document.getElementById('userName').textContent = user.fullName;
-        currentTeacherId = user.userId;
-        
-        // Load teacher's courses
-        await loadTeacherCourses();
-    } catch (error) {
-        console.error('Error loading teacher info:', error);
-        alert('Session expired. Please login again.');
-        logout();
-    } finally {
-        hideLoading();
-    }
+    await validateSession();
 }
 
 // Load teacher's assigned courses
 async function loadTeacherCourses() {
     try {
         const response = await fetch(`${API_URL}/teacher/my-courses`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: {},
+            credentials: 'include'
         });
-        
+
         if (!response.ok) throw new Error('Failed to load courses');
-        
+
         const courses = await response.json();
         currentTeacherCourses = courses;
-        
+
         // Display courses in grid
         const coursesGrid = document.getElementById('coursesGrid');
         coursesGrid.innerHTML = '';
-        
+
         if (!courses || courses.length === 0) {
             showEmptyState(coursesGrid, 'No courses assigned yet. Contact admin to get courses assigned.', '📚');
             return;
         }
-        
+
         courses.forEach(course => {
             const card = document.createElement('div');
             card.className = 'card';
@@ -334,10 +313,10 @@ async function loadTeacherCourses() {
             `;
             coursesGrid.appendChild(card);
         });
-        
+
         // Populate select dropdowns
         populateCourseSelects(courses);
-        
+
     } catch (error) {
         console.error('Error loading courses:', error);
         alert('Failed to load courses');
@@ -347,11 +326,11 @@ async function loadTeacherCourses() {
 // Populate course dropdowns
 function populateCourseSelects(courses) {
     const selects = ['courseSelect', 'viewCourseSelect', 'studentsViewCourseSelect'];
-    
+
     selects.forEach(selectId => {
         const select = document.getElementById(selectId);
         select.innerHTML = '<option value="">-- Select Course --</option>';
-        
+
         courses.forEach(course => {
             const option = document.createElement('option');
             option.value = course.courseId;
@@ -365,31 +344,32 @@ function populateCourseSelects(courses) {
 async function loadCourseStudents() {
     const courseId = document.getElementById('courseSelect').value;
     const date = document.getElementById('attendanceDate').value;
-    
+
     if (!courseId || !date) {
         document.getElementById('studentsAttendance').style.display = 'none';
         return;
     }
-    
+
     try {
         const response = await fetch(`${API_URL}/teacher/course-students/${courseId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: {},
+            credentials: 'include'
         });
-        
+
         if (!response.ok) throw new Error('Failed to load students');
-        
+
         const students = await response.json();
         const studentsTable = document.getElementById('studentsTable');
         studentsTable.innerHTML = '';
-        
+
         if (students.length === 0) {
             studentsTable.innerHTML = '<tr><td colspan="6">No students enrolled in this course</td></tr>';
             document.getElementById('studentsAttendance').style.display = 'block';
             return;
         }
-        
+
         attendanceData = [];
-        
+
         students.forEach(student => {
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -414,7 +394,7 @@ async function loadCourseStudents() {
                 </td>
             `;
             studentsTable.appendChild(row);
-            
+
             // Initialize attendance data with default "Present"
             attendanceData.push({
                 studentId: student.studentId,
@@ -422,9 +402,9 @@ async function loadCourseStudents() {
                 remarks: ''
             });
         });
-        
+
         document.getElementById('studentsAttendance').style.display = 'block';
-        
+
     } catch (error) {
         console.error('Error loading students:', error);
         alert('Failed to load students');
@@ -437,7 +417,7 @@ async function markSingleAttendance(studentId) {
     const date = document.getElementById('attendanceDate').value;
     const statusSelect = document.querySelector(`.status-select[data-student-id="${studentId}"]`);
     const remarksInput = document.querySelector(`.remarks-input[data-student-id="${studentId}"]`);
-    
+
     const attendanceRecord = {
         studentId: studentId,
         courseId: parseInt(courseId),
@@ -445,26 +425,26 @@ async function markSingleAttendance(studentId) {
         status: statusSelect.value,
         remarks: remarksInput.value
     };
-    
+
     try {
         const response = await fetch(`${API_URL}/teacher/mark-attendance`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify(attendanceRecord)
         });
-        
+
         if (!response.ok) {
             const error = await response.text();
             throw new Error(error);
         }
-        
+
         showToast('Attendance marked successfully!', 'success', 'Saved');
         statusSelect.style.background = '#d4edda';
         setTimeout(() => statusSelect.style.background = '', 2000);
-        
+
     } catch (error) {
         console.error('Error marking attendance:', error);
         showToast('Failed to mark attendance: ' + error.message, 'error');
@@ -475,20 +455,20 @@ async function markSingleAttendance(studentId) {
 async function saveAllAttendance() {
     const courseId = document.getElementById('courseSelect').value;
     const date = document.getElementById('attendanceDate').value;
-    
+
     if (!courseId || !date) {
         showToast('Please select course and date', 'warning');
         return;
     }
-    
+
     // Collect all attendance data
     const attendanceRecords = [];
     const statusSelects = document.querySelectorAll('.status-select');
-    
+
     statusSelects.forEach(select => {
         const studentId = select.getAttribute('data-student-id');
         const remarksInput = document.querySelector(`.remarks-input[data-student-id="${studentId}"]`);
-        
+
         attendanceRecords.push({
             studentId: parseInt(studentId),
             courseId: parseInt(courseId),
@@ -497,32 +477,32 @@ async function saveAllAttendance() {
             remarks: remarksInput.value
         });
     });
-    
+
     // Count present/absent
     const presentCount = attendanceRecords.filter(r => r.status === 'Present').length;
     const absentCount = attendanceRecords.filter(r => r.status === 'Absent').length;
     const lateCount = attendanceRecords.filter(r => r.status === 'Late').length;
-    
+
     try {
         // Mark attendance for all students
         const promises = attendanceRecords.map(record =>
             fetch(`${API_URL}/teacher/mark-attendance`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify(record)
             })
         );
-        
+
         await Promise.all(promises);
-        
+
         // Refresh attendance records in View Attendance section
         if (document.getElementById('viewCourseSelect').value) {
             loadAttendanceRecords();
         }
-        
+
         // Show HCI Success Screen
         showSuccessScreen({
             title: 'Attendance Saved!',
@@ -537,7 +517,7 @@ async function saveAllAttendance() {
             buttonText: '✓ Continue',
             onClose: null
         });
-        
+
     } catch (error) {
         console.error('Error saving attendance:', error);
         showToast('Failed to save attendance', 'error');
@@ -548,46 +528,47 @@ async function saveAllAttendance() {
 async function loadAttendanceRecords() {
     const courseId = document.getElementById('viewCourseSelect').value;
     const filterDate = document.getElementById('filterDate').value;
-    
+
     if (!courseId) {
         document.getElementById('attendanceRecordsTable').innerHTML = '<tr><td colspan="6">Please select a course</td></tr>';
         return;
     }
-    
+
     try {
         let url = `${API_URL}/teacher/attendance-records/${courseId}`;
         if (filterDate) {
             url += `?date=${filterDate}`;
         }
-        
+
         const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: {},
+            credentials: 'include'
         });
-        
+
         if (!response.ok) throw new Error('Failed to load attendance records');
-        
+
         const records = await response.json();
-        
+
         // Sort by attendanceId descending (newest first)
         records.sort((a, b) => b.attendanceId - a.attendanceId);
-        
+
         // Store records globally for editing
         window.attendanceRecords = records;
-        
+
         const table = document.getElementById('attendanceRecordsTable');
         table.innerHTML = '';
-        
+
         if (records.length === 0) {
             table.innerHTML = '<tr><td colspan="7">No attendance records found</td></tr>';
             return;
         }
-        
+
         records.forEach((record, index) => {
             const row = document.createElement('tr');
-            const statusClass = record.status === 'Present' ? 'status-present' : 
-                              record.status === 'Absent' ? 'status-absent' : 
-                              record.status === 'Late' ? 'status-late' : 'status-leave';
-            
+            const statusClass = record.status === 'Present' ? 'status-present' :
+                record.status === 'Absent' ? 'status-absent' :
+                    record.status === 'Late' ? 'status-late' : 'status-leave';
+
             row.innerHTML = `
                 <td>${new Date(record.date).toLocaleDateString()}</td>
                 <td>${record.student?.rollNumber || 'N/A'}</td>
@@ -610,7 +591,7 @@ async function loadAttendanceRecords() {
             `;
             table.appendChild(row);
         });
-        
+
     } catch (error) {
         console.error('Error loading attendance records:', error);
         alert('Failed to load attendance records');
@@ -624,17 +605,18 @@ async function saveAttendanceEdit(index) {
         alert('Record not found');
         return;
     }
-    
+
     const newStatus = document.getElementById(`editStatus_${index}`).value;
     const newRemarks = document.getElementById(`editRemarks_${index}`).value;
-    
+
     try {
         const response = await fetch(`${API_URL}/teacher/mark-attendance`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
+                // 'Authorization': `Bearer ${token}`
             },
+            credentials: 'include',
             body: JSON.stringify({
                 studentId: record.studentId,
                 courseId: record.courseId,
@@ -643,14 +625,14 @@ async function saveAttendanceEdit(index) {
                 remarks: newRemarks
             })
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to update attendance');
         }
-        
+
         alert('Attendance updated successfully!');
         loadAttendanceRecords(); // Reload to show updated data
-        
+
     } catch (error) {
         console.error('Error updating attendance:', error);
         alert('Failed to update attendance');
@@ -660,44 +642,46 @@ async function saveAttendanceEdit(index) {
 // Load students list for a course
 async function loadStudentsList() {
     const courseId = document.getElementById('studentsViewCourseSelect').value;
-    
+
     if (!courseId) {
         document.getElementById('studentsListTable').innerHTML = '<tr><td colspan="4">Please select a course</td></tr>';
         return;
     }
-    
+
     try {
         const [studentsResponse, attendanceResponse] = await Promise.all([
             fetch(`${API_URL}/teacher/course-students/${courseId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {},
+                credentials: 'include'
             }),
             fetch(`${API_URL}/teacher/attendance-records/${courseId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {},
+                credentials: 'include'
             })
         ]);
-        
+
         if (!studentsResponse.ok || !attendanceResponse.ok) {
             throw new Error('Failed to load data');
         }
-        
+
         const students = await studentsResponse.json();
         const attendance = await attendanceResponse.json();
-        
+
         const table = document.getElementById('studentsListTable');
         table.innerHTML = '';
-        
+
         if (students.length === 0) {
             table.innerHTML = '<tr><td colspan="4">No students enrolled</td></tr>';
             return;
         }
-        
+
         students.forEach(student => {
             // Calculate attendance summary
             const studentAttendance = attendance.filter(a => a.studentId === student.studentId);
             const total = studentAttendance.length;
             const present = studentAttendance.filter(a => a.status === 'Present').length;
             const percentage = total > 0 ? ((present / total) * 100).toFixed(1) : 0;
-            
+
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${student.rollNumber}</td>
@@ -710,7 +694,7 @@ async function loadStudentsList() {
             `;
             table.appendChild(row);
         });
-        
+
     } catch (error) {
         console.error('Error loading students list:', error);
         alert('Failed to load students');
@@ -725,10 +709,10 @@ function showSection(sectionId) {
     document.querySelectorAll('.menu li').forEach(item => {
         item.classList.remove('active');
     });
-    
+
     document.getElementById(sectionId).classList.add('active');
     event.target.classList.add('active');
-    
+
     // Load timetable when timetable section is shown
     if (sectionId === 'timetable') {
         loadTeacherTimetable();
@@ -739,19 +723,20 @@ function showSection(sectionId) {
 async function loadTeacherTimetable() {
     try {
         const response = await fetch(`${API_URL}/teacher/my-timetable`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: {},
+            credentials: 'include'
         });
-        
+
         if (!response.ok) throw new Error('Failed to load timetable');
-        
+
         const timetable = await response.json();
         const tbody = document.getElementById('timetableBody');
-        
+
         if (timetable.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No timetable entries found</td></tr>';
             return;
         }
-        
+
         // Sort by day of week
         const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         timetable.sort((a, b) => {
@@ -759,7 +744,7 @@ async function loadTeacherTimetable() {
             if (dayDiff !== 0) return dayDiff;
             return a.startTime.localeCompare(b.startTime);
         });
-        
+
         tbody.innerHTML = timetable.map(entry => `
             <tr>
                 <td>${entry.dayOfWeek}</td>
@@ -772,7 +757,7 @@ async function loadTeacherTimetable() {
         `).join('');
     } catch (error) {
         console.error('Error loading timetable:', error);
-        document.getElementById('timetableBody').innerHTML = 
+        document.getElementById('timetableBody').innerHTML =
             '<tr><td colspan="6" style="text-align: center; color: red;">Error loading timetable</td></tr>';
     }
 }
@@ -782,12 +767,12 @@ function filterMarkAttendanceTable() {
     const searchTerm = document.getElementById('searchMarkAttendance').value.toLowerCase();
     const table = document.getElementById('studentsTable');
     const rows = table.getElementsByTagName('tr');
-    
+
     for (let i = 0; i < rows.length; i++) {
         const rollNumber = rows[i].cells[0]?.textContent.toLowerCase() || '';
         const name = rows[i].cells[1]?.textContent.toLowerCase() || '';
         const email = rows[i].cells[2]?.textContent.toLowerCase() || '';
-        
+
         if (rollNumber.includes(searchTerm) || name.includes(searchTerm) || email.includes(searchTerm)) {
             rows[i].style.display = '';
         } else {
@@ -801,15 +786,15 @@ function filterViewAttendanceTable() {
     const searchTerm = document.getElementById('searchViewAttendance').value.toLowerCase();
     const table = document.getElementById('attendanceRecordsTable');
     const rows = table.getElementsByTagName('tr');
-    
+
     for (let i = 0; i < rows.length; i++) {
         const date = rows[i].cells[0]?.textContent.toLowerCase() || '';
         const rollNumber = rows[i].cells[1]?.textContent.toLowerCase() || '';
         const name = rows[i].cells[2]?.textContent.toLowerCase() || '';
         const status = rows[i].querySelector('select')?.value.toLowerCase() || '';
         const remarks = rows[i].cells[5]?.querySelector('input')?.value.toLowerCase() || '';
-        
-        if (rollNumber.includes(searchTerm) || name.includes(searchTerm) || 
+
+        if (rollNumber.includes(searchTerm) || name.includes(searchTerm) ||
             status.includes(searchTerm) || date.includes(searchTerm) || remarks.includes(searchTerm)) {
             rows[i].style.display = '';
         } else {
@@ -823,12 +808,12 @@ function filterStudentsListTable() {
     const searchTerm = document.getElementById('searchStudentsList').value.toLowerCase();
     const table = document.getElementById('studentsListTable');
     const rows = table.getElementsByTagName('tr');
-    
+
     for (let i = 0; i < rows.length; i++) {
         const rollNumber = rows[i].cells[0]?.textContent.toLowerCase() || '';
         const name = rows[i].cells[1]?.textContent.toLowerCase() || '';
         const email = rows[i].cells[2]?.textContent.toLowerCase() || '';
-        
+
         if (rollNumber.includes(searchTerm) || name.includes(searchTerm) || email.includes(searchTerm)) {
             rows[i].style.display = '';
         } else {
@@ -837,9 +822,9 @@ function filterStudentsListTable() {
     }
 }
 
-// Logout
-function logout() {
-    localStorage.clear();
+// Logout function
+async function logout() {
+    await clearAuthData(); // Clear both localStorage and cookies (and call backend)
     window.location.href = 'index.html';
 }
 
